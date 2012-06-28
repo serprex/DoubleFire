@@ -1,14 +1,4 @@
 #include "df.h"
-/*int getbxyi(int x,int y)
-{
-	x>>=3;
-	y>>=3;
-	return mapB[(2047-y)*256+(x>>3)]&1<<(x&7);
-}
-int getbxy(int x,float dy)
-{
-	return getbxyi(x,ceil(dy));
-}*/
 int ohit(obj*a,obj*b){
 	int ax2=a->x+a->w,ay2=a->y+a->h,bx2=b->x+b->w,by2=b->y+b->h;
 	return a!=b&&(pino(a->x,a->y,b)||pino(ax2,a->y,b)||pino(a->x,ay2,b)||pino(ax2,ay2,b)||pino(b->x,b->y,a)||pino(bx2,b->y,a)||pino(b->x,by2,a)||pino(bx2,by2,a)||a->x>b->x&&a->x<bx2&&a->y>b->y&&a->y<by2||b->x>a->x&&b->x<ax2&&b->y>a->y&&b->y<ay2);

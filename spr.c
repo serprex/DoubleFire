@@ -1,7 +1,7 @@
 #include "df.h"
 struct spr spr[LSPR]={
-	{0,0,8,8},
-	{0,8,8,8},
+	{0,0,7,8},
+	{0,8,7,8},
 };
 void drawRect_(int x,int y,int w,int h,float tx,float ty,float tw,float th){
 	glTexCoord2f(tx,ty);
@@ -20,7 +20,7 @@ void drawRect(int x,int y,int w,int h,float tx,float ty,float tw,float th){
 }
 void drawSpr_(sprid s,int x,int y,int f,int hv){
 	int h=!(hv&1),v=!(hv&2);
-	drawRect(h?x:x+spr[s].w,v?y:y+spr[s].h,spr[s].w*(h?1:-1),spr[s].h*(v?1:-1),(spr[s].x+spr[s].w*f)/256.,spr[s].y/256.,spr[s].w/256.,spr[s].h/256.);
+	drawRect(h?x:x+spr[s].w,v?y:y+spr[s].h,spr[s].w*(h?1:-1),spr[s].h*(v?1:-1),(spr[s].x+spr[s].w*f)/(float)SW,spr[s].y/(float)SH,spr[s].w/(float)SW,spr[s].h/(float)SH);
 }
 void drawSpr(sprid s,int x,int y,int f){
 	glColor3ub(255,255,255);

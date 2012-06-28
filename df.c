@@ -1,4 +1,20 @@
 #include "df.h"
+int tcp,udp;
+int any(int s){
+	struct pollfd pfd={.fd=s,.events=POLLIN};
+	while((s=poll(&pfd,1,0))==-1);
+	return s;
+}
+int readch(int s){
+	uint8_t c;
+	ssize_t A;
+	while((A=read(s,&c,1))==-1);
+	return A?c:-1;
+}
+int sendch(int s,uint8_t c){
+	while(send(s,&c,1,MSG_MORE)==-1);
+	return c;
+}
 typedef struct{
 	float x,y,xd,yd;
 }bxy;
@@ -71,7 +87,7 @@ void mkLzo(){
 	if(!Lzo){
 		Lzo=1;
 		for(int i=0;i<32;i++){
-			Lzr[i][0]=Px[1]+4;
+			Lzr[i][0]=Px[1]+3;
 			Lzr[i][1]=Py[1]+1;
 		}
 	}
@@ -87,7 +103,7 @@ int pinr(int x,int y,int x1,int y1,int x2,int y2){
 	return x>x1&&x<x2&&y>y1&&y<y2;
 }
 int pinp(int x,int y,int p){
-	return pinr(x,y,Px[p],Py[p],Px[p]+7,Py[p]+7);
+	return pinr(x,y,Px[p]+1,Py[p]+1,Px[p]+6,Py[p]+7);
 }
 int binp(void*b,int p){
 	float*xy=b;
@@ -112,7 +128,7 @@ int main(int argc,char**argv){
 	glBindTexture(GL_TEXTURE_2D,Stx);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,256,256,0,GL_LUMINANCE,GL_UNSIGNED_BYTE,S);
+	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,SW,SH,0,SF,GL_UNSIGNED_BYTE,S);
 	Pt=atoi(argv[1]);
 	udp=socket(AF_INET,SOCK_DGRAM,0);
 	struct sockaddr_in udpip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=2000+Pt};
@@ -164,12 +180,12 @@ int main(int argc,char**argv){
 		else if(++Pf==2||!(Pf%12)){
 			if(Pt){
 				if(!Lzo)
-					pbmake(Px[Pt]+4,Py[Pt],0,-3);
+					pbmake(Px[Pt]+3,Py[Pt],0,-3);
 			}else{
 				float xd=60-Px[Pt],yd=124-Py[Pt],xy=sqrt(xd*xd+yd*yd);
 				if(xy)
-					pbmake(Px[Pt]+4,Py[Pt]+4,xd*3/xy,yd*3/xy);
-				pbmake(Px[Pt]+4,Py[Pt]+4,0,4);
+					pbmake(Px[Pt]+3,Py[Pt]+4,xd*3/xy,yd*3/xy);
+				pbmake(Px[Pt]+3,Py[Pt]+4,0,4);
 			}
 		}
 		if(glfwGetKey('X')){
@@ -187,7 +203,6 @@ int main(int argc,char**argv){
 		}
 		notex();
 		if(Lzo||Bor){
-			//glBlendFunc(GL_ONE_MINUS_SRC_COLOR,GL_ONE);//GL_DST_COLOR);
 			if(Lzo){
 				memmove(Lzr+1,Lzr,248);
 				Lzr[0][0]=Px[1]+3+(rand()%3);
@@ -207,7 +222,6 @@ int main(int argc,char**argv){
 				if(Bor>16)
 					Bor=0;
 			}
-			//glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
 		}
 		glColor3ub(255,255,255);
 		for(int i=0;i<=PBlen;i++){
