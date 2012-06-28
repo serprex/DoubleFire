@@ -40,7 +40,7 @@ objb B[512];
 int Blen;
 bxy PB[256];
 int PBlen=-1;
-int Pt,Pf;
+int Pt,Pf,Of;
 float Px[2]={60,100},Py[2]={160,160};
 int Lzo,Box,Boy,Bor;
 float Lzr[32][2];
@@ -103,7 +103,7 @@ int pinr(int x,int y,int x1,int y1,int x2,int y2){
 	return x>x1&&x<x2&&y>y1&&y<y2;
 }
 int pinp(int x,int y,int p){
-	return pinr(x,y,Px[p]+1,Py[p]+1,Px[p]+6,Py[p]+7);
+	return pinr(x,y,Px[p]-3,Py[p]-3,Px[p]+3,Py[p]+3);
 }
 int binp(void*b,int p){
 	float*xy=b;
@@ -154,6 +154,7 @@ int main(int argc,char**argv){
 			fprintf(stderr,"s%d\n",errno);
 			return 1;
 		}
+		close(lis);
 		ip.sin_port=2000+!Pt;
 		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
 	}
@@ -173,19 +174,19 @@ int main(int argc,char**argv){
 			Pxx*=sqrt(2);
 			Pyy*=sqrt(2);
 		}
-		Px[Pt]=fmin(fmax(Px[Pt]+Pxx,9),247);
-		Py[Pt]=fmin(fmax(Py[Pt]+Pyy,9),247);
+		Px[Pt]=fmin(fmax(Px[Pt]+Pxx,8),120);
+		Py[Pt]=fmin(fmax(Py[Pt]+Pyy,8),248);
 		if(!glfwGetKey('Z'))
 			Pf=0;
 		else if(++Pf==2||!(Pf%12)){
 			if(Pt){
 				if(!Lzo)
-					pbmake(Px[Pt]+3,Py[Pt],0,-3);
+					pbmake(Px[Pt],Py[Pt]-3,0,-3);
 			}else{
 				float xd=60-Px[Pt],yd=124-Py[Pt],xy=sqrt(xd*xd+yd*yd);
 				if(xy)
-					pbmake(Px[Pt]+3,Py[Pt]+4,xd*3/xy,yd*3/xy);
-				pbmake(Px[Pt]+3,Py[Pt]+4,0,4);
+					pbmake(Px[Pt],Py[Pt],xd*3/xy,yd*3/xy);
+				pbmake(Px[Pt],Py[Pt],0,4);
 			}
 		}
 		if(glfwGetKey('X')){
@@ -205,8 +206,8 @@ int main(int argc,char**argv){
 		if(Lzo||Bor){
 			if(Lzo){
 				memmove(Lzr+1,Lzr,248);
-				Lzr[0][0]=Px[1]+3+(rand()%3);
-				Lzr[0][1]=Py[1]+(rand()&3);
+				Lzr[0][0]=Px[1]+(rand()%3);
+				Lzr[0][1]=Py[1]-3+(rand()&3);
 				glBegin(GL_QUAD_STRIP);
 				for(int i=0;i<32;i++){
 					glColor3ub(255-i*8,255-i*8,255-i*8);
@@ -235,8 +236,8 @@ int main(int argc,char**argv){
 			else glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
 		}
 		retex();
-		drawSpr(Pt?Ika:Rev,Px[Pt],Py[Pt],Pf>3);
-		drawSpr(Pt?Rev:Ika,Px[!Pt],Py[!Pt],Pf>3);
+		drawSpr(Pt?Ika:Rev,Px[Pt]-3,Py[Pt]-4,Pf>3);
+		drawSpr(Pt?Rev:Ika,Px[!Pt]-3,Py[!Pt]-4,Of);
 		/*for(int i=0;i<512;i++){
 			objb*b=B+i;
 			switch(B[i].t){
@@ -279,11 +280,12 @@ int main(int argc,char**argv){
 			uint16_t mt=*(uint16_t*)ubu;
 			if(mt==ot)continue;
 			while(up-ubu<len){
-				if(*up<161){
+				if(*up<128){
 					if(mt>ot){
 						Px[!Pt]=up[0];
 						Py[!Pt]=up[1];
-						if(up[2]){
+						Of=up[2]&1;
+						if(up[2]&2){
 							if(Pt){
 								mkBor();
 							}else{
@@ -299,6 +301,7 @@ int main(int argc,char**argv){
 					}
 					up+=3;
 				}else if(*up==161){
+					Of=1;
 					bxy*b=(bxy*)++up;
 					PB[++PBlen]=*b;
 					b->x+=b->xd*(mt-ot);
@@ -307,21 +310,21 @@ int main(int argc,char**argv){
 				}else{
 					printf("Unknown %d\n",*up);
 					ot=mt;
-					continue;
+					break;
 				}
 			}
-			ot=mt;
+			if(mt>ot)ot=mt;
 		}
 		if(++t&1){
-			unsigned char pxy[]={Px[Pt],Py[Pt],(Pt?Lzo:!!Bor)};
+			unsigned char pxy[]={Px[Pt],Py[Pt],!!Pf|(Pt?Lzo:!!Bor)<<1};
 			write(udp,pxy,3);
 			printf("%d %d\n",pxy[0],pxy[1]);
 			uint16_t ts=t>>1;
 			send(udp,&ts,2,MSG_MORE);
 		}
 		double gT=1./30-glfwGetTime();
-		if(gT>0)glfwSleep(gT);
-		else printf("%f\n",-gT);
+		if(gT>0&&t>ot<<1)glfwSleep(gT);
+		else printf("%f\n",gT);
 		glfwSetTime(0);
 		glfwPollEvents();
 		if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED))return 0;
