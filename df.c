@@ -16,72 +16,76 @@ int sendch(int s,uint8_t c){
 	return c;
 }
 typedef struct{
-	float x,y,xd,yd;
-}bxy;
-typedef struct{
-	float x,y,d,v;
-}bd;
-typedef struct{
-	float x,y,d,v;
-}bm;
-typedef struct{
 	uint8_t t;
+	float x,y;
 	union{
-		struct{float x,y;};
-		bxy xy;
-		bd d;
-		bm m;
+		struct{float xd,yd;};
+		struct{float d,v;};
 	};
 }objb;
+typedef struct{
+	uint8_t t;
+	int8_t h;
+	float x,y,d;
+	union{
+		struct{
+			float xd,yd;
+		};
+		void*p;
+	};
+}obje;
 typedef enum{
-	BNO,BXY,BD,BM
-}bid;
-objb B[512];
-int Blen;
-bxy PB[256];
-int PBlen=-1;
+	BXY,BD,BM,
+	ECAN=128,
+}oid;
+objb B[8192];
+objb*Btop=B-1;
+obje E[64];
+obje*Etop=E-1;
+objb PB[256];
+objb*PBtop=PB-1;
 int Pt,Pf,Of;
 float Px[2]={60,100},Py[2]={160,160};
 int Lzo,Box,Boy,Bor;
 float Lzr[32][2];
-static void*bmake(uint8_t t,float x,float y){
-	while(B[Blen].t)
-		if(Blen++==512)
-			Blen=0;
-	objb*b=B+Blen;
+void bmake(uint8_t t,float x,float y,float xd,float yd){
+	objb*b=++Btop;
 	b->t=t;
 	b->x=x;
 	b->y=y;
-	return &b->m;
-}
-void bmakexy(float x,float y,float xd,float yd){
-	bxy*b=bmake(BXY,x,y);
 	b->xd=xd;
 	b->yd=yd;
 }
-void bmakexydv(float x,float y,float d,float v){
-	bxy*b=bmake(BXY,x,y);
-	b->xd=cos(d)*v;
-	b->yd=sin(d)*v;
+void bmakexy(float x,float y,float xd,float yd){
+	bmake(BXY,x,y,xd,yd);
+}
+void bmakexyd(float x,float y,float d,float v){
+	bmake(BXY,x,y,cos(d)*v,-sin(d)*v);
 }
 void bmaked(float x,float y,float d,float v){
-	bd*b=bmake(BD,x,y);
-	b->d=d;
-	b->v=v;
+	bmake(BD,x,y,d,v);
 }
 void bmakem(float x,float y,float d,float v){
-	bm*b=bmake(BM,x,y);
-	b->d=d;
-	b->v=v;
+	bmake(BM,x,y,d,v);
+}
+void emakecan(float x,float y,float d,float xd,float yd){
+	obje*e=++Etop;
+	e->t=ECAN;
+	e->h=5;
+	e->x=x;
+	e->y=y;
+	e->d=d;
+	e->xd=xd;
+	e->yd=yd;
 }
 void pbmake(float x,float y,float xd,float yd){
-	bxy*b=PB+(++PBlen);
+	objb*b=++PBtop;
 	b->x=x;
 	b->y=y;
 	b->xd=xd;
 	b->yd=yd;
 	sendch(udp,161);
-	send(udp,b,sizeof(bxy),MSG_MORE);
+	send(udp,b,sizeof(objb),MSG_MORE);
 }
 void mkLzo(){
 	if(!Lzo){
@@ -98,6 +102,25 @@ void mkBor(){
 		Box=(Pt?128-Px[0]:Px[0])+3;
 		Boy=(Pt?256-Py[0]:Py[0])+3;
 	}
+}
+int rinpb(float x,float y,int r){
+	r*=r;
+	int n=0;
+	for(objb*b=PB;b<=PBtop;b++)
+		if(dst2(x,y,b->x,b->y)<=r){
+			n++;
+			*b--=*PBtop--;
+		}
+	return n;
+}
+int rinlz(float x,float y,int r){
+	return Lzo&&y<=Py[1]&&x>=Px[1]-4&&x<=Px[1]+4;
+}
+int rinbo(float x,float y,int r){
+	return Bor&&dst2(x,y,Box,Boy)<=sqr(r+Bor);
+}
+int rdmg(float x,float y,int r){
+	return rinpb(x,y,r)+rinbo(x,y,r)+rinlz(x,y,r);
 }
 int pinr(int x,int y,int x1,int y1,int x2,int y2){
 	return x>x1&&x<x2&&y>y1&&y<y2;
@@ -129,6 +152,7 @@ int main(int argc,char**argv){
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,SW,SH,0,SF,GL_UNSIGNED_BYTE,S);
+	genL1();
 	Pt=atoi(argv[1]);
 	udp=socket(AF_INET,SOCK_DGRAM,0);
 	struct sockaddr_in udpip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=2000+Pt};
@@ -158,13 +182,20 @@ int main(int argc,char**argv){
 		ip.sin_port=2000+!Pt;
 		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
 	}
-	uint16_t ts=0;
-	send(udp,&ts,2,MSG_MORE);
+	uint16_t t=0,ot=0;
+	send(udp,&t,2,MSG_MORE);
+	unsigned char*L=Lv;
 	srand(glfwGetTime()*10e5);
-	int t=0;
-	uint16_t ot=0;
 	for(;;){
 		glClear(GL_COLOR_BUFFER_BIT);
+		while(t==*(uint16_t*)L){
+			L+=2;
+			switch(*L++){
+			case(128)
+				emakecan(*(uint16_t*)L,*(uint16_t*)(L+2),*(float*)(L+4),*(float*)(L+8),*(float*)(L+12));
+				L+=16;
+			}
+		}
 		int Pxx=glfwGetKey(GLFW_KEY_RIGHT)-glfwGetKey(GLFW_KEY_LEFT),Pyy=glfwGetKey(GLFW_KEY_DOWN)-glfwGetKey(GLFW_KEY_UP);
 		if(Pt){
 			Pxx*=1.5;
@@ -178,7 +209,7 @@ int main(int argc,char**argv){
 		Py[Pt]=fmin(fmax(Py[Pt]+Pyy,8),248);
 		if(!glfwGetKey('Z'))
 			Pf=0;
-		else if(++Pf==2||!(Pf%12)){
+		else(++Pf==2||!(Pf%12)){
 			if(Pt){
 				if(!Lzo)
 					pbmake(Px[Pt],Py[Pt]-3,0,-3);
@@ -191,17 +222,13 @@ int main(int argc,char**argv){
 		}
 		if(glfwGetKey('X')){
 			if(Pt){
-				if(!Lzo){
-					mkLzo();
-				}
-			}else if(!Bor){
+				if(!Lzo)mkLzo();
+			}else(!Bor){
 				mkBor();
 				Px[Pt]=128-Px[Pt];
 				Py[Pt]=256-Py[Pt];
 			}
-		}else if(Lzo&&Pt){
-			Lzo=0;
-		}
+		}else(Lzo&&Pt)Lzo=0;
 		notex();
 		if(Lzo||Bor){
 			if(Lzo){
@@ -213,61 +240,65 @@ int main(int argc,char**argv){
 					glColor3ub(255-i*8,255-i*8,255-i*8);
 					glVertex2f(Lzr[i][0],0);
 					glVertex2fv(Lzr[i]);
-					printf("%d:%f,%f\n",i,Lzr[i][0],Lzr[i][1]);
 				}
 				glEnd();
 			}
 			if(Bor){
 				glRecti(Box-Bor,Boy-Bor,Box+Bor,Boy+Bor);
-				Bor++;
-				if(Bor>16)
-					Bor=0;
+				if(++Bor>16)Bor=0;
 			}
 		}
 		glColor3ub(255,255,255);
-		for(int i=0;i<=PBlen;i++){
-			again:;
-			bxy*b=PB+i;
+		for(objb*b=PB;b<=PBtop;b++){
 			glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
 			b->x+=b->xd;
 			b->y+=b->yd;
-			if(b->y<-1||b->x<-1||b->x>257||b->y>257)
-				PB[i--]=PB[PBlen--];
+			if(b->y<-1||b->x<-1||b->x>129||b->y>257)
+				*b--=*PBtop--;
 			else glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
 		}
+		for(obje*e=E;e<=Etop;e++){
+			switch(e->t){
+			case(ECAN)
+				glRectf(e->x-e->h,e->y-e->h,e->x+e->h,e->y+e->h);
+				e->x+=e->xd;
+				e->y+=e->yd;
+				if(t&16)
+					bmakexyd(e->x,e->y,e->d,8);
+				if(rdmg(e->x,e->y,e->h*3/2))
+					e->h--;
+				if(e->x<-5||e->x>133||e->y<-5||e->y>261)*e--=*Etop--;
+				else(e->h<0)*e--=*Etop--;
+				else(e->h<3)e->h--;
+			}
+		}
+		for(objb*b=B;b<=Btop;b++){
+			switch(b->t){
+			case(BXY)
+				glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
+				b->x+=b->xd;
+				b->y+=b->yd;
+				if(b->y<-1||b->x<-1||b->x>257||b->y>257)
+					*b--=*Btop--;
+				else glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+				if(binp(b,Pt)){
+					Px[Pt]=64;
+				}
+			case(BD)
+				glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
+				b->x+=cos(b->d)*b->v;
+				b->y+=sin(b->d)*b->v;
+				glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+			case(BM)
+				b->x+=cos(b->d)*b->v;
+				b->y+=sin(b->d)*b->v;
+			}
+			if(b->x<-64||b->x>128+64||b->y<-64||b->y>512+64)
+				*b--=*Btop--;
+		}
 		retex();
-		drawSpr(Pt?Ika:Rev,Px[Pt]-3,Py[Pt]-4,Pf>3);
-		drawSpr(Pt?Rev:Ika,Px[!Pt]-3,Py[!Pt]-4,Of);
-		/*for(int i=0;i<512;i++){
-			objb*b=B+i;
-			switch(B[i].t){
-				case(BNO)continue;
-				case(BXY){
-					bxy*Bxy=&b->xy;
-					Bxy->x+=Bxy->xd;
-					Bxy->y+=Bxy->yd;
-					drawSpr(EggA,Bxy->x,Bxy->y,0,0);
-					if(binp(Bxy)){
-					}
-				}
-				case(BD){
-					bd*Bd=&b->d;
-					Bd->x+=cos(Bd->d)*Bd->v;
-					Bd->y+=sin(Bd->d)*Bd->v;
-					drawSpr(EggA,Bd->x,Bd->y,0,0);
-				}
-				case(BM){
-					bm*Bm=&b->m;
-					drawSpr(EggB,Bm->x,Bm->y,0,0);
-					Bm->x+=cos(Bm->d)*Bm->v;
-					Bm->y+=sin(Bm->d)*Bm->v;
-					drawSpr(EggB,Bm->x,Bm->y,0,0);
-				}
-			}
-			if(B[i].x<-64||B[i].x>1024+64||B[i].y<-64||B[i].y>512+64){
-				B[i].t=BNO;
-			}
-		}*/
+		drawSpr(Pt?Ika:Rev,Px[Pt]-3,Py[Pt]-4,Pf>3,255,128,64);
+		drawSpr(Pt?Rev:Ika,Px[!Pt]-3,Py[!Pt]-4,Of,64,128,255);
 		glfwSwapBuffers();
 		while(any(tcp)){
 			if(readch(tcp)==-1)return 0;
@@ -300,13 +331,13 @@ int main(int argc,char**argv){
 						}
 					}
 					up+=3;
-				}else if(*up==161){
+				}else(*up==161){
 					Of=1;
-					bxy*b=(bxy*)++up;
-					PB[++PBlen]=*b;
+					objb*b=(objb*)++up;
+					*++PBtop=*b;
 					b->x+=b->xd*(mt-ot);
 					b->y+=b->yd*(mt-ot);
-					up+=sizeof(bxy);
+					up+=sizeof(objb);
 				}else{
 					printf("Unknown %d\n",*up);
 					ot=mt;
@@ -318,12 +349,10 @@ int main(int argc,char**argv){
 		if(++t&1){
 			unsigned char pxy[]={Px[Pt],Py[Pt],!!Pf|(Pt?Lzo:!!Bor)<<1};
 			write(udp,pxy,3);
-			printf("%d %d\n",pxy[0],pxy[1]);
-			uint16_t ts=t>>1;
-			send(udp,&ts,2,MSG_MORE);
+			send(udp,&t,2,MSG_MORE);
 		}
 		double gT=1./30-glfwGetTime();
-		if(gT>0&&t>ot<<1)glfwSleep(gT);
+		if(gT>0&&t>ot)glfwSleep(gT);
 		else printf("%f\n",gT);
 		glfwSetTime(0);
 		glfwPollEvents();

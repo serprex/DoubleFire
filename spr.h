@@ -5,4 +5,4 @@ extern struct spr{
 }spr[LSPR];
 void drawRect_(int x,int y,int w,int h,float tx,float ty,float tw,float th);
 void drawRect(int x,int y,int w,int h,float tx,float ty,float tw,float th);
-void drawSpr(sprid s,int x,int y,int f);
+void drawSpr(sprid s,int x,int y,int f,int r,int g,int b);
