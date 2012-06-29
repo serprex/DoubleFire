@@ -28,3 +28,22 @@ void drawSpr(sprid s,int x,int y,int f,int r,int g,int b){
 	glColor3ub(rand(),rand(),rand());
 	drawSpr_(s,x,y,f*2+1,0);
 }
+void glCirc(float x,float y,float r)
+{
+	r=fabsf(r);
+	const float r2=r*r,r12=r*M_SQRT1_2;
+	glBegin(GL_LINES);
+	for(float xc=0, yc=r; xc <= r12; xc++)
+	{
+		if(sqr(xc)+sqr(yc)>=r2)yc--;
+		glVertex2f(x+xc,y+yc);
+		glVertex2f(x+xc,y-yc);
+		glVertex2f(x-xc,y+yc);
+		glVertex2f(x-xc,y-yc);
+		glVertex2f(x+yc,y+xc);
+		glVertex2f(x+yc,y-xc);
+		glVertex2f(x-yc,y+xc);
+		glVertex2f(x-yc,y-xc);
+	}
+	glEnd();
+}
