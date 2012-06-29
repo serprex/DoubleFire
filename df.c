@@ -20,7 +20,8 @@ void sendch(int s,uint8_t c){
 	while(send(s,&c,1,MSG_MORE)==-1);
 }
 typedef struct{
-	uint32_t t;
+	uint8_t t;
+	uint16_t a;
 	float x,y;
 	union{
 		struct{float xd,yd;};
@@ -91,6 +92,8 @@ void emaketar(float x,float y){
 	e->c=t;
 	e->x=x;
 	e->y=y;
+	e->xd=0;
+	e->yd=M_PI;
 }
 void execLz(int c,float x,float y,float d){
 	glBegin(GL_TRIANGLES);
@@ -158,14 +161,17 @@ float rrot(float a,float b,float m){
 	if(fabsf(b)<=m)return a-b;
 	return b>0?a-m:a+m;
 }
-void rrotx(float*a,float b,float m){
+void rrota(float*a,float b,float m){
 	*a=rrot(*a,b,m);
 }
+void rrotxy(float*a,float x1,float y1,float x2,float y2,float m){
+	rrota(a,dir(x1,y1,x2,y2),m);
+}
 void erota(obje*e,float a,float m){
-	rrotx(&e->d,a,m);
+	rrota(&e->d,a,m);
 }
 void erotxy(obje*e,float x,float y,float m){
-	erota(e,dir(e->x,e->y,x,y),m);
+	rrotxy(&e->d,e->x,e->y,x,y,m);
 }
 GLuint Stx;
 void notex(){
@@ -223,6 +229,10 @@ int main(int argc,char**argv){
 	Pe=128;
 	for(;;){
 		glClear(GL_COLOR_BUFFER_BIT);
+		if(Pe<0){
+			Px[Pt]=20;
+			Pe=0;
+		}
 		while(t==*(uint16_t*)L){
 			L+=2;
 			switch(*L++){
@@ -272,7 +282,7 @@ int main(int argc,char**argv){
 		notex();
 		if(Lzo||Bor){
 			if(Lzo){
-				if(Pe--<=0)Lzo=0;
+				if((Pe-=2)<=0)Lzo=0;
 				memmove(Lzr+1,Lzr,248);
 				Lzr[0][0]=Px[1]+(rand()%3);
 				Lzr[0][1]=Py[1]-3+(rand()&3);
@@ -298,7 +308,7 @@ int main(int argc,char**argv){
 				*b--=*PBtop--;
 			else glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
 		}
-		Ph=2;
+		Ph=2-(Pt&&Lzo);
 		for(obje*e=E;e<=Etop;e++){
 			switch(e->t){
 			case(ECAN)
@@ -306,8 +316,8 @@ int main(int argc,char**argv){
 				e->x+=e->xd;
 				e->y+=e->yd;
 				erotxy(e,Px[Pt],Py[Pt],M_PI/16);
-				if(t&16)
-					bmakexyd(e->x,e->y,e->d,8);
+				if(t&8||!(t&3))
+					bmakexyd(e->x,e->y,e->d,6);
 				if(rdmg(e->x,e->y,e->h*3/2))
 					e->h--;
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261)*e--=*Etop--;
@@ -325,14 +335,16 @@ int main(int argc,char**argv){
 				glColor3ub(255,255,255);
 				glEnable(GL_BLEND);
 				e->h-=rdmg(e->x,e->y,e->h*2/3);
+				rrotxy(&e->xd,e->x,e->y,Px[0],Py[0],M_PI/128);
+				rrotxy(&e->yd,e->x,e->y,Px[1],Py[1],M_PI/128);
 				for(int i=0;i<2;i++)
-					execLz(min(t-e->c,99+e->h),e->x,e->y,dir(e->x,e->y,Px[i],Py[i]));
+					execLz(min(t-e->c,99+e->h),e->x,e->y,i?e->yd:e->xd);
 				if(e->h<-99)*e--=*Etop--;
 				else(e->h<6)e->h--;
 			}
 		}
 		for(objb*b=B;b<=Btop;b++){
-			switch(b->t&255){
+			switch(b->t){
 			case(BXY)
 				glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
 				b->x+=b->xd;
@@ -354,7 +366,10 @@ int main(int argc,char**argv){
 				*b--=*Btop--;
 		}
 		if(Ph==1)Pe+=(Pe<128);
-		else(Ph<1)Px[Pt]=20;
+		else(Ph<1){
+			Btop=B;
+			Pe-=64;
+		}
 		glRecti(128,0,136,Pe*2);
 		retex();
 		drawSpr(Pt?Ika:Rev,Px[Pt]-3,Py[Pt]-4,Pf>3,255,128,64);

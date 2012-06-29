@@ -21,4 +21,4 @@
 #define min(x,y) ({__typeof__(x) _x=(x);__typeof__(y) _y=(y);_x<_y?_x:_y;})
 #define dst2(x1,y1,x2,y2) (sqr((x1)-(x2))+sqr((y1)-(y2)))
 #define dst(x1,y1,x2,y2) sqrt(sqr((x1)-(x2))+sqr((y1)-(y2)))
-#define dir(x1,y1,x2,y2) (M_PI-atan2((y1)-(y2),(x1)-(x2)))
+#define dir(x1,y1,x2,y2) (M_PI-atan2((y2)-(y1),(x1)-(x2)))
