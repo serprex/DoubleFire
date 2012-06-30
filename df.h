@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/poll.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #include <sys/ioctl.h>
 #include "tgen.h"
 #include "lv.h"
