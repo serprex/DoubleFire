@@ -2,6 +2,7 @@
 int tcp,udp;
 uint16_t T,oT,loTxy;
 static uint8_t oTs[8192];
+static uint8_t umsg[1024],*umsgp=umsg;
 static const uint8_t col[]={255,0,0,255,255,255,127,63,127,255};
 static const uint8_t*red=col,*blu=col+1,*wht=col+3,*shr=col+5,*shb=col+7;
 float rnorm(float a){
@@ -16,9 +17,6 @@ int readch(int s){
 	uint8_t c;
 	ssize_t a=read(s,&c,1);
 	return a?c:-1;
-}
-void sendch(int s,uint8_t c){
-	send(s,&c,1,MSG_MORE);
 }
 typedef struct{
 	uint8_t t;
@@ -59,10 +57,11 @@ void sendxy(int s){
 	unsigned char pxy[]={Px[Pt],Py[Pt],(Pt?Lzo:!!Bor)|(Pf<12?Pf:12+Pf%12)<<1};
 	if(memcmp(lpxy,pxy,3)){
 		memcpy(lpxy,pxy,3);
-		send(udp,pxy,3,MSG_MORE);
+		memcpy(umsgp,pxy,3);
+		umsgp+=3;
 	}else if(!memcmp(lpxy,pxy,2)){
-		sendch(udp,128);
-		sendch(udp,lpxy[2]=pxy[2]);
+		*umsgp++=128;
+		*umsgp++=lpxy[2]=pxy[2];
 	}
 }
 void mkpb(float x,float y,float xd,float yd,int t){
@@ -272,7 +271,8 @@ int main(int argc,char**argv){
 	}
 	static const int one32=1;
 	setsockopt(tcp,IPPROTO_TCP,TCP_NODELAY,(char*)&one32,sizeof(int));
-	send(udp,&T,2,MSG_MORE);
+	*(uint16_t*)umsgp=T;
+	umsgp+=2;
 	unsigned char*L=Lv;
 	srand(glfwGetTime()*10e5);
 	Pe=128;
@@ -460,8 +460,10 @@ int main(int argc,char**argv){
 		}
 		if(++T&1){
 			sendxy(udp);
-			write(udp,0,0);
-			send(udp,&T,2,MSG_MORE);
+			write(udp,umsg,umsgp-umsg);
+			umsgp=umsg;
+			*(uint16_t*)umsgp=T;
+			umsgp+=2;
 		}
 		double gT=1./30-glfwGetTime();
 		if(gT>0&&T>oT)glfwSleep(gT);
