@@ -22,7 +22,7 @@ void drawSpr_(sprid s,int x,int y,int f,int hv){
 	int h=!(hv&1),v=!(hv&2);
 	drawRect(h?x:x+spr[s].w,v?y:y+spr[s].h,spr[s].w*(h?1:-1),spr[s].h*(v?1:-1),(spr[s].x+spr[s].w*f)/(float)SW,spr[s].y/(float)SH,spr[s].w/(float)SW,spr[s].h/(float)SH);
 }
-void drawSpr(sprid s,int x,int y,int f,uint8_t*c){
+void drawSpr(sprid s,int x,int y,int f,const uint8_t*c){
 	glColor3ub(rand(),rand(),rand());
 	drawSpr_(s,x,y,f*2+1,0);
 	glColor3ubv(c);

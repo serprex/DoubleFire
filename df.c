@@ -1,25 +1,24 @@
 #include "df.h"
 int tcp,udp;
-uint16_t T,oT;
-static uint8_t col[]={255,0,0,255,255,255,127,63,127,255};
-static uint8_t*red=col,*blu=col+1,*wht=col+3,*shr=col+5,*shb=col+7;
+uint16_t T,oT,loTxy;
+static uint8_t oTs[8192];
+static const uint8_t col[]={255,0,0,255,255,255,127,63,127,255};
+static const uint8_t*red=col,*blu=col+1,*wht=col+3,*shr=col+5,*shb=col+7;
 float rnorm(float a){
 	a=fmodf(a,M_PI*2);
 	return a>M_PI?a-M_PI*2:a;
 }
 int any(int s){
 	struct pollfd pfd={.fd=s,.events=POLLIN};
-	while((s=poll(&pfd,1,0))==-1);
-	return s;
+	return poll(&pfd,1,0);
 }
 int readch(int s){
 	uint8_t c;
-	ssize_t a;
-	while((a=read(s,&c,1))==-1);
+	ssize_t a=read(s,&c,1);
 	return a?c:-1;
 }
 void sendch(int s,uint8_t c){
-	while(send(s,&c,1,MSG_MORE)==-1);
+	send(s,&c,1,MSG_MORE);
 }
 typedef struct{
 	uint8_t t;
@@ -53,69 +52,23 @@ obje*Etop=E-1;
 objb PB[256];
 objb*PBtop=PB-1;
 int Pt,Pf,Of,Ph,Pi,Pe;
-float Px[2]={60,100},Py[2]={160,160},Lzr[32][2];
+float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
 void sendxy(int s){
-	static unsigned char lpxy[]={0,0,0,1};
-	unsigned char pxy[]={Px[Pt],Py[Pt],!!Pf|(Pt?Lzo:!!Bor)<<1,0};
-	if(memcmp(lpxy,pxy,4)){
-		memcpy(lpxy,pxy,4);
+	static unsigned char lpxy[3];
+	unsigned char pxy[]={Px[Pt],Py[Pt],(Pt?Lzo:!!Bor)|(Pf<12?Pf:12+Pf%12)<<1};
+	if(memcmp(lpxy,pxy,3)){
+		memcpy(lpxy,pxy,3);
 		send(udp,pxy,3,MSG_MORE);
+	}else if(!memcmp(lpxy,pxy,2)){
+		sendch(udp,128);
+		sendch(udp,lpxy[2]=pxy[2]);
 	}
 }
-void bmake(uint32_t t,float x,float y,float xd,float yd){
-	objb*b=++Btop;
-	b->t=t;
-	b->x=x;
-	b->y=y;
-	b->xd=xd;
-	b->yd=yd;
-}
-void bmakexy(float x,float y,float xd,float yd){
-	bmake(BXY,x,y,xd,yd);
-}
-void bmakexyd(float x,float y,float d,float v){
-	bmake(BXY,x,y,cos(d)*v,-sin(d)*v);
-}
-void bmaked(float x,float y,float d,float v){
-	bmake(BD,x,y,d,v);
-}
-void bmakem(float x,float y,float d,float v){
-	bmake(BM,x,y,d,v);
-}
-void emakecan(uint8_t t,float x,float y,float d,float xd,float yd){
-	obje*e=++Etop;
-	e->t=t;
-	e->h=5;
-	e->c=T;
-	e->x=x;
-	e->y=y;
-	e->d=d;
-	e->xd=xd;
-	e->yd=yd;
-}
-void emaketar(uint8_t t,float x,float y){
-	obje*e=++Etop;
-	e->t=t;
-	e->h=32;
-	e->c=T;
-	e->x=x;
-	e->y=y;
-	e->xd=0;
-	e->yd=M_PI;
-}
-void execLz(int c,float x,float y,float d){
-	glBegin(GL_TRIANGLES);
-	glVertex2f(x,y);
-	glVertex2f(x+cos(d+M_PI/64)*c,y-sin(d+M_PI/64)*c);
-	glVertex2f(x+cos(d-M_PI/64)*c,y-sin(d-M_PI/64)*c);
-	glEnd();
-	if(dst(x,y,Px[Pt],Py[Pt])<c&&fabsf(rnorm(d+dir(x,y,Px[Pt],Py[Pt])))<M_PI/64)Ph--;
-}
-void pbmake(float x,float y,float xd,float yd){
+void mkpb(float x,float y,float xd,float yd,int t){
 	objb*b=++PBtop;
-	b->x=x;
-	b->y=y;
+	b->x=x-xd*t;
+	b->y=y-yd*t;
 	b->xd=xd;
 	b->yd=yd;
 }
@@ -134,6 +87,96 @@ void mkBor(){
 		Box=(Pt?128-Px[0]:Px[0])+3;
 		Boy=(Pt?256-Py[0]:Py[0])+3;
 	}
+}
+void xShot(int p,int f,int t){
+	printf("::%d %d %d:%d\n",p,f,t,Pe);
+	if(Pe&&(f==3||!(f%12))){
+		Pe--;
+		if(p){
+			mkpb(Px[1],Py[1]-3,0,-3,t);
+		}else{
+			mkpb(Px[0],Py[0],0,4,t);
+			float xd=64-Px[0],yd=128-Py[0];
+			if(xd||yd){
+				float xy=sqrt(xd*xd+yd*yd);
+				mkpb(Px[0],Py[0],xd*3/xy,yd*3/xy,t);
+			}
+		}
+	}
+}
+void xOf(uint8_t c,int t){
+	if(Of=c>>1){
+		if(t>0)
+			for(int i=0;i<t;i++)
+				xShot(!Pt,Of++,i-t);
+		else Of=max(Of-t,4);
+	}
+	if(c&1){
+		if(Pt){
+			Pe-=16;
+			mkBor();
+			Bor=t;
+		}else{
+			mkLzo();
+		}
+	}else*(Pt?&Bor:&Lzo)=0;
+}
+void xDie(int t){
+	Btop=B;
+	for(obje*e=E;e<=Etop;e++)
+		if(e->c<=T-t)e->h=min(e->h,t);
+	Pe-=48;
+	Pi=20;
+	Lzo=0;
+}
+void mkb(uint32_t t,float x,float y,float xd,float yd){
+	objb*b=++Btop;
+	b->t=t;
+	b->x=x;
+	b->y=y;
+	b->xd=xd;
+	b->yd=yd;
+}
+void mkbxy(float x,float y,float xd,float yd){
+	mkb(BXY,x,y,xd,yd);
+}
+void mkbxyd(float x,float y,float d,float v){
+	mkb(BXY,x,y,cos(d)*v,-sin(d)*v);
+}
+void mkbd(float x,float y,float d,float v){
+	mkb(BD,x,y,d,v);
+}
+void mkbm(float x,float y,float d,float v){
+	mkb(BM,x,y,d,v);
+}
+void mkecan(uint8_t t,float x,float y,float d,float xd,float yd){
+	obje*e=++Etop;
+	e->t=t;
+	e->h=5;
+	e->c=T;
+	e->x=x;
+	e->y=y;
+	e->d=d;
+	e->xd=xd;
+	e->yd=yd;
+}
+void mketar(uint8_t t,float x,float y){
+	obje*e=++Etop;
+	e->t=t;
+	e->h=32;
+	e->c=T;
+	e->x=x;
+	e->y=y;
+	e->xd=0;
+	e->yd=M_PI;
+}
+void xLz(int c,float x,float y,float d){
+	glBegin(GL_TRIANGLES);
+	glVertex2f(x,y);
+	glVertex2f(x+cos(d+M_PI/64)*c,y-sin(d+M_PI/64)*c);
+	glVertex2f(x+cos(d-M_PI/64)*c,y-sin(d-M_PI/64)*c);
+	glEnd();
+	if(dst(x,y,Px[Pt],Py[Pt])<c&&fabsf(rnorm(d+dir(x,y,Px[Pt],Py[Pt])))<M_PI/64)Ph--;
 }
 int rinpb(float x,float y,int r){
 	r*=r;
@@ -244,10 +287,10 @@ int main(int argc,char**argv){
 			switch(*L++&127){
 			default:printf("Unknown E%x\n",L[-1]);
 			case(ECAN)
-				emakecan(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2),*(float*)(L+4),*(float*)(L+8),*(float*)(L+12));
+				mkecan(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2),*(float*)(L+4),*(float*)(L+8),*(float*)(L+12));
 				L+=16;
 			case(ETAR)
-				emaketar(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2));
+				mketar(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2));
 				L+=4;
 			}
 		}
@@ -262,20 +305,10 @@ int main(int argc,char**argv){
 		}
 		Px[Pt]=fminf(fmaxf(Px[Pt]+Pxx,8),120);
 		Py[Pt]=fminf(fmaxf(Py[Pt]+Pyy,8),248);
-		if(!glfwGetKey('Z'))
-			Pf=0;
-		else(++Pf==2||!(Pf%12)&&Pe&&!(Pt&&Lzo)){
-			Pe--;
-			sendxy(udp);
-			sendch(udp,200);
-			if(Pt){
-				pbmake(Px[1],Py[1]-3,0,-3);
-			}else{
-				float xd=60-Px[0],yd=124-Py[0],xy=sqrt(xd*xd+yd*yd);
-				if(xy)pbmake(Px[0],Py[0],xd*3/xy,yd*3/xy);
-				pbmake(Px[0],Py[0],0,4);
-			}
-		}
+		if(Of)
+			xShot(!Pt,Of++,0);
+		if(!glfwGetKey('Z')||(Pt&&Lzo))Pf=0;
+		else xShot(Pt,Pf++,0);
 		if(glfwGetKey('X')){
 			if(Pt){
 				if(!Lzo&&Pe>0)mkLzo();
@@ -326,7 +359,7 @@ int main(int argc,char**argv){
 				e->y+=e->yd;
 				erotxy(e,Px[et],Py[et],M_PI/16);
 				if(T-e->c&8||!(T-e->c&3))
-					bmakexyd(e->x,e->y,e->d,6);
+					mkbxyd(e->x,e->y,e->d,6);
 				if(rdmg(e->x,e->y,e->h*3/2))
 					e->h--;
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)*e--=*Etop--;
@@ -347,7 +380,7 @@ int main(int argc,char**argv){
 				rrotxy(&e->xd,e->x,e->y,Px[0],Py[0],M_PI/64);
 				rrotxy(&e->yd,e->x,e->y,Px[1],Py[1],M_PI/64);
 				for(int i=0;i<2;i++)
-					execLz(min(T-e->c,99+e->h),e->x,e->y,i?e->yd:e->xd);
+					xLz(min(T-e->c,99+e->h),e->x,e->y,i?e->yd:e->xd);
 				if(e->h<-99)*e--=*Etop--;
 				else(e->h<6)e->h--;
 			}
@@ -377,30 +410,25 @@ int main(int argc,char**argv){
 		Pi-=Pi>0;
 		if(Ph==1&&(!Pt||!Lzo))Pe+=(Pe<128);
 		else(Ph<1&&!Pi){
-			uint8_t diemsg[3]={128};
+			uint8_t diemsg[3]={32};
 			*(uint16_t*)(diemsg+1)=T;
 			write(tcp,diemsg,3);
-			Btop=B;
-			for(obje*e=E;e<=Etop;e++)e->h=0;
-			Pe-=48;
-			Pi=20;
+			xDie(0);
 		}
+		glColor3ub(rand(),rand(),rand());
 		glRecti(128,0,136,Pe*2);
+		glRecti(136,64,144,64+T-oT);
 		retex();
-		drawSpr(Ika,Px[1]-3,Py[1]-4,Pt?Pf>3:Of,shr);
-		drawSpr(Rev,Px[0]-3,Py[0]-4,Pt?Of:Pf>3,shb);
+		drawSpr(Ika,Px[1]-3,Py[1]-4,(Pt?Pf:Of)>3,shr);
+		drawSpr(Rev,Px[0]-3,Py[0]-4,(Pt?Of:Pf)>3,shb);
 		glfwSwapBuffers();
 		while(any(tcp)){
 			int t;
 			uint16_t mt;
 			if((t=readch(tcp))==-1)return 0;
-			if(t==128){
+			if(t==32){
 				read(tcp,&mt,2);
-				Btop=B;
-				for(obje*e=E;e<=Etop;e++)
-					if(e->c<=mt)e->h=mt-T;
-				Pe-=48;
-				Pi=20;
+				xDie(T-mt);
 			}
 		}
 		while(any(udp)){
@@ -409,43 +437,22 @@ int main(int argc,char**argv){
 			unsigned char ubu[len],*up=ubu+2;
 			read(udp,ubu,len);
 			uint16_t mt=*(uint16_t*)ubu;
-			if(mt==oT)continue;
+			if(oTs[mt>>3]&=1<<(mt&7))continue;
+			oTs[mt>>3]|=1<<(mt&7);
 			while(up-ubu<len){
 				if(*up<128){
-					if(mt>oT){
+					if(mt>loTxy){
+						loTxy=mt;
 						Px[!Pt]=up[0];
 						Py[!Pt]=up[1];
-						Of=up[2]&1;
-						if(up[2]&2){
-							if(Pt){
-								Pe-=16;
-								mkBor();
-							}else{
-								mkLzo();
-							}
-						}else{
-							if(Pt){
-								Bor=0;
-							}else{
-								Lzo=0;
-							}
-						}
+						xOf(up[2],T-mt);
 					}
 					up+=3;
-				}else(*up==200){
-					Pe-=Pe>0;
-					Of=1;
-					if(!Pt){
-						pbmake(Px[1],Py[1]-3,0,-3);
-					}else{
-						float xd=60-Px[0],yd=124-Py[0],xy=sqrt(xd*xd+yd*yd);
-						if(xy)pbmake(Px[0],Py[0],xd*3/xy,yd*3/xy);
-						pbmake(Px[0],Py[0],0,4);
-					}
-					up++;
+				}else(*up==128){
+					xOf(up[1],T-mt);
+					up+=2;
 				}else{
 					printf("Unknown %d\n",*up);
-					up++;
 					break;
 				}
 			}
