@@ -365,7 +365,7 @@ int main(int argc,char**argv){
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)*e--=*Etop--;
 				else(e->h<3)e->h--;
 			case(ETAR)
-				r=min(T-e->c,e->h);
+				r=min(T-e->c,abs(e->h));
 				glDisable(GL_BLEND);
 				glColor3ubv(wht);
 				glCirc(e->x,e->y,r);
@@ -380,9 +380,9 @@ int main(int argc,char**argv){
 				rrotxy(&e->xd,e->x,e->y,Px[0],Py[0],M_PI/64);
 				rrotxy(&e->yd,e->x,e->y,Px[1],Py[1],M_PI/64);
 				for(int i=0;i<2;i++)
-					xLz(min(T-e->c,99+e->h),e->x,e->y,i?e->yd:e->xd);
-				if(e->h<-99)*e--=*Etop--;
-				else(e->h<6)e->h--;
+					xLz(min(T-e->c,120+e->h),e->x,e->y,i?e->yd:e->xd);
+				if(e->h<-120)*e--=*Etop--;
+				else(e->h<6)e->h-=4;
 			}
 		}
 		glColor3ubv(wht);
