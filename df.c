@@ -49,17 +49,18 @@ obje E[64];
 obje*Etop=E-1;
 objb PB[256];
 objb*PBtop=PB-1;
-int Pt,Pf,Of,Ph,Pi,Pe;
+int Pt,nPf,Pf,Of,Ph,Pi,Pe;
 float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
 void sendxy(int s){
 	static unsigned char lpxy[3];
-	unsigned char pxy[]={Px[Pt],Py[Pt],(Pt?Lzo:!!Bor)|(Pf<12?Pf:12+Pf%12)<<1};
+	unsigned char pxy[]={Px[Pt],Py[Pt],(Pt?Lzo:!!Bor)|(nPf?Pf&63:127)<<1};
+	nPf=0;
 	if(memcmp(lpxy,pxy,3)){
 		memcpy(lpxy,pxy,3);
 		memcpy(umsgp,pxy,3);
 		umsgp+=3;
-	}else if(!memcmp(lpxy,pxy,2)){
+	}else if(!memcmp(lpxy,pxy,2)&&(!(pxy[2]&128)||(pxy[2]&1)!=(lpxy[2]&1))){
 		*umsgp++=128;
 		*umsgp++=lpxy[2]=pxy[2];
 	}
@@ -88,8 +89,7 @@ void mkBor(){
 	}
 }
 void xShot(int p,int f,int t){
-	printf("::%d %d %d:%d\n",p,f,t,Pe);
-	if(Pe&&(f==3||!(f%12))){
+	if(Pe&&!(f&7)){
 		Pe--;
 		if(p){
 			mkpb(Px[1],Py[1]-3,0,-3,t);
@@ -104,11 +104,11 @@ void xShot(int p,int f,int t){
 	}
 }
 void xOf(uint8_t c,int t){
-	if(Of=c>>1){
-		if(t>0)
+	if(!(c&128)&&(Of=c>>1)){
+		if(t>0){
 			for(int i=0;i<t;i++)
-				xShot(!Pt,Of++,i-t);
-		else Of=max(Of-t,4);
+				xShot(!Pt,++Of,i-t);
+		}else Of=8+((Of+t)&7);
 	}
 	if(c&1){
 		if(Pt){
@@ -148,7 +148,7 @@ void mkbd(float x,float y,float d,float v){
 void mkbm(float x,float y,float d,float v){
 	mkb(BM,x,y,d,v);
 }
-void mkecan(uint8_t t,float x,float y,float d,float xd,float yd){
+void mkcan(uint8_t t,float x,float y,float d,float xd,float yd){
 	obje*e=++Etop;
 	e->t=t;
 	e->h=5;
@@ -159,7 +159,7 @@ void mkecan(uint8_t t,float x,float y,float d,float xd,float yd){
 	e->xd=xd;
 	e->yd=yd;
 }
-void mketar(uint8_t t,float x,float y){
+void mktar(uint8_t t,float x,float y){
 	obje*e=++Etop;
 	e->t=t;
 	e->h=32;
@@ -248,7 +248,7 @@ int main(int argc,char**argv){
 		return 1;
 	}
 	if(argc>1){
-		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=htons(argc>3?atoi(argv[2]):2000)};
+		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=htons(argc>2?atoi(argv[1]):2000)};
 		if((tcp=socket(AF_INET,SOCK_STREAM,0))<0||inet_aton(argv[1],&ip.sin_addr)<=0||connect(tcp,(struct sockaddr*)&ip,sizeof(ip))<0){
 			fprintf(stderr,"c%d\n",errno);
 			return 1;
@@ -277,6 +277,11 @@ int main(int argc,char**argv){
 	srand(glfwGetTime()*10e5);
 	Pe=128;
 	for(;;){
+		if(umsgp-umsg==2){
+			*(uint16_t*)umsg=T;
+		}else{
+			*umsgp++=130;
+		}
 		glClear(GL_COLOR_BUFFER_BIT);
 		if(Pe<0){
 			Px[Pt]=20;
@@ -287,10 +292,10 @@ int main(int argc,char**argv){
 			switch(*L++&127){
 			default:printf("Unknown E%x\n",L[-1]);
 			case(ECAN)
-				mkecan(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2),*(float*)(L+4),*(float*)(L+8),*(float*)(L+12));
+				mkcan(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2),*(float*)(L+4),*(float*)(L+8),*(float*)(L+12));
 				L+=16;
 			case(ETAR)
-				mketar(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2));
+				mktar(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2));
 				L+=4;
 			}
 		}
@@ -306,9 +311,15 @@ int main(int argc,char**argv){
 		Px[Pt]=fminf(fmaxf(Px[Pt]+Pxx,8),120);
 		Py[Pt]=fminf(fmaxf(Py[Pt]+Pyy,8),248);
 		if(Of)
-			xShot(!Pt,Of++,0);
-		if(!glfwGetKey('Z')||(Pt&&Lzo))Pf=0;
-		else xShot(Pt,Pf++,0);
+			xShot(!Pt,++Of,0);
+		if(Pf)
+			xShot(Pt,++Pf,0);
+		if(glfwGetKey('Z')&&!Pf)
+			nPf=Pf=1;
+		else(!(Pf&7)){
+			nPf=1;
+			Pf=0;
+		}
 		if(glfwGetKey('X')){
 			if(Pt){
 				if(!Lzo&&Pe>0)mkLzo();
@@ -362,7 +373,7 @@ int main(int argc,char**argv){
 					mkbxyd(e->x,e->y,e->d,6);
 				if(rdmg(e->x,e->y,e->h*3/2))
 					e->h--;
-				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)*e--=*Etop--;
+				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 				else(e->h<3)e->h--;
 			case(ETAR)
 				r=min(T-e->c,abs(e->h));
@@ -381,8 +392,14 @@ int main(int argc,char**argv){
 				rrotxy(&e->yd,e->x,e->y,Px[1],Py[1],M_PI/64);
 				for(int i=0;i<2;i++)
 					xLz(min(T-e->c,120+e->h),e->x,e->y,i?e->yd:e->xd);
-				if(e->h<-120)*e--=*Etop--;
+				if(e->h<-120)goto kille;
 				else(e->h<6)e->h-=4;
+			}
+			if(0)kille:{
+				*umsgp++=129;
+				*(uint16_t*)umsgp=e->t;
+				umsgp+=2;
+				*e--=*Etop--;
 			}
 		}
 		glColor3ubv(wht);
@@ -451,6 +468,16 @@ int main(int argc,char**argv){
 				}else(*up==128){
 					xOf(up[1],T-mt);
 					up+=2;
+				}else(*up==129){
+					for(obje*e=E;e<=Etop;e++)
+						if(e->c=*(uint16_t*)(up+1)){
+							*e=*Etop--;
+							break;
+						}
+					up+=3;
+				}else(*up==130){
+					mt++;
+					up++;
 				}else{
 					printf("Unknown %d\n",*up);
 					break;
@@ -461,6 +488,7 @@ int main(int argc,char**argv){
 		if(++T&1){
 			sendxy(udp);
 			write(udp,umsg,umsgp-umsg);
+			printf("%d %d\n",T,umsgp-umsg);
 			umsgp=umsg;
 			*(uint16_t*)umsgp=T;
 			umsgp+=2;
