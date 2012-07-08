@@ -41,7 +41,7 @@ typedef struct{
 }obje;
 typedef enum{
 	BXY,BD,BM,
-	ECAN=32,ETAR,ELZ
+	ECAN=32,ETAR,EB1
 }oid;
 objb B[8192];
 objb*Btop=B-1;
@@ -56,11 +56,11 @@ void sendxy(int s){
 	static unsigned char lpxy[3];
 	unsigned char pxy[]={Px[Pt],Py[Pt],(Pt?Lzo:!!Bor)|(nPf?Pf&63:127)<<1};
 	nPf=0;
-	if(memcmp(lpxy,pxy,3)){
+	if(memcmp(lpxy,pxy,2)){
 		memcpy(lpxy,pxy,3);
 		memcpy(umsgp,pxy,3);
 		umsgp+=3;
-	}else if(!memcmp(lpxy,pxy,2)&&(!(pxy[2]&128)||(pxy[2]&1)!=(lpxy[2]&1))){
+	}else if(lpxy[2]!=pxy[2]&&(!(pxy[2]&128)||(pxy[2]&1)!=(lpxy[2]&1))){
 		*umsgp++=128;
 		*umsgp++=lpxy[2]=pxy[2];
 	}
@@ -487,11 +487,16 @@ int main(int argc,char**argv){
 		}
 		if(++T&1){
 			sendxy(udp);
-			write(udp,umsg,umsgp-umsg);
-			printf("%d %d\n",T,umsgp-umsg);
-			umsgp=umsg;
-			*(uint16_t*)umsgp=T;
-			umsgp+=2;
+			if(umsgp-umsg>2){
+				write(udp,umsg,umsgp-umsg);
+				printf("%d %d: ",T,umsgp-umsg);
+				for(uint8_t*m=umsg;m<umsgp;m++)
+					printf("%d ",*m);
+				printf("\n");
+				umsgp=umsg;
+				*(uint16_t*)umsgp=T;
+				umsgp+=2;
+			}
 		}
 		double gT=1./30-glfwGetTime();
 		if(gT>0&&T>oT)glfwSleep(gT);
