@@ -28,30 +28,31 @@ void drawSpr(sprid s,int x,int y,int f,const uint8_t*c){
 	glColor3ubv(c);
 	drawSpr_(s,x,y,f*2,0);
 }
-void glCirc(float x,float y,float r)
-{
-	r=fabsf(r);
-	const float r2=r*r,r12=r*M_SQRT1_2;
+static void dVine(float x,float y1,float y2){
+	glVertex2f(x,y1);
+	glVertex2f(x,y2);
+	glVertex2f(x+.5,y1);
+	glVertex2f(x+.5,y2);
+}
+void glCirc(float xx,float yy,float r){
+	float f=1-r,fx=1,fy=r*2,x=0,y=r;
 	glBegin(GL_LINES);
-	for(float xc=0,yc=r;xc<r12;xc++)
+	dVine(xx,yy+r,yy-4);
+	while(x<y)
 	{
-		if(sqr(xc)+sqr(yc)>r2)yc--;
-		glVertex2f(x+xc,y+yc);
-		glVertex2f(x+xc,y-yc);
-		glVertex2f(x-xc,y+yc);
-		glVertex2f(x-xc,y-yc);
-		glVertex2f(x+yc,y+xc);
-		glVertex2f(x+yc,y-xc);
-		glVertex2f(x-yc,y+xc);
-		glVertex2f(x-yc,y-xc);
-		glVertex2f(x+xc+.5,y+yc);
-		glVertex2f(x+xc+.5,y-yc);
-		glVertex2f(x-xc+.5,y+yc);
-		glVertex2f(x-xc+.5,y-yc);
-		glVertex2f(x+yc+.5,y+xc);
-		glVertex2f(x+yc+.5,y-xc);
-		glVertex2f(x-yc+.5,y+xc);
-		glVertex2f(x-yc+.5,y-xc);
+		if(f>=0)
+		{
+			y--;
+			fy-=2;
+			f-=fy;
+		}
+		x++;
+		fx+=2;
+		f+=fx;
+		dVine(xx+x,yy+y,yy-y);
+		dVine(xx-x,yy+y,yy-y);
+		dVine(xx+y,yy+x,yy-x);
+		dVine(xx-y,yy+x,yy-x);
 	}
 	glEnd();
 }
