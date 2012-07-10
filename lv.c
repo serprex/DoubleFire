@@ -8,8 +8,7 @@ w(8)
 w(16)
 w(32)
 wt(float,4)
-static void can(uint16_t t,int p,int16_t x,int16_t y,float v,float d)
-{
+static void can(uint16_t t,int p,int16_t x,int16_t y,float v,float d){
 	w16(t);
 	w8(p?160:32);
 	w16(x);
@@ -18,17 +17,19 @@ static void can(uint16_t t,int p,int16_t x,int16_t y,float v,float d)
 	wfloat(cos(d)*v);
 	wfloat(-sin(d)*v);
 }
-static void tar(uint16_t t,int16_t x,int16_t y)
-{
+static void tar(uint16_t t,int16_t x,int16_t y){
 	w16(t);
 	w8(33);
 	w16(x);
 	w16(y);
 }
-static void b1(uint16_t t)
-{
+static void b1(uint16_t t){
 	w16(t);
 	w8(34);
+}
+static void b2(uint8_t t){
+	w16(t);
+	w8(35);
 }
 void genL1(){
 	Lp=Lv;

@@ -24,21 +24,24 @@ typedef struct{
 	uint32_t p;
 	float x,y,xd,yd;
 }bxy;
-typedef struct{
-	uint8_t t;
-	int8_t h;
-	uint16_t c;
-	float x,y,d;
-	union{
-		struct{
-			float xd,yd;
+typedef union{
+	uint8_t a[20];
+	struct{
+		uint8_t t;
+		int8_t h;
+		uint16_t c;
+		float x,y,d;
+		union{
+			struct{
+				float xd,yd;
+			};
+			void*p;
 		};
-		void*p;
 	};
 }obje;
 typedef enum{
 	BMI,BEX,
-	ECAN=32,ETAR,EB1
+	ECAN=32,ETAR,EB1,EB2
 }oid;
 bxy B[8192];
 bxy*Btop=B-1;
@@ -168,6 +171,13 @@ void mkb1(){
 	e->x=64;
 	e->y=320;
 	e->xd=0;
+}
+void mkb2(){
+	obje*e=mke(EB2);
+	for(int y=0;y<4;y++)
+		for(int x=0;x<4;x++)
+			e->a[y*4+x]=(x&1)^(y&1);
+	e->a[17]=0;
 }
 void xLz(int c,float x,float y,float d){
 	glBegin(GL_TRIANGLES);
@@ -300,6 +310,8 @@ int main(int argc,char**argv){
 				L+=4;
 			case(EB1)
 				mkb1();
+			case(EB2)
+				mkb2();
 			}
 		}
 		float Pxx=glfwGetKey(GLFW_KEY_RIGHT)-glfwGetKey(GLFW_KEY_LEFT),Pyy=glfwGetKey(GLFW_KEY_DOWN)-glfwGetKey(GLFW_KEY_UP);
@@ -308,8 +320,8 @@ int main(int argc,char**argv){
 			Pyy*=1.5;
 		}
 		if(Pxx&&Pyy){
-			Pxx*=sqrt(2);
-			Pyy*=sqrt(2);
+			Pxx*=M_SQRT2;
+			Pyy*=M_SQRT2;
 		}
 		Px[Pt]=fminf(fmaxf(Px[Pt]+Pxx,8),120);
 		Py[Pt]=fminf(fmaxf(Py[Pt]+Pyy,8),248);
@@ -427,6 +439,8 @@ int main(int argc,char**argv){
 						if(e->h<8)goto kille;
 					}
 				}
+			case(EB2)
+				if(e->a[17]<48)e->a[17]+=T&1;
 			}
 			if(0)kille:{
 				*umsgp++=129;
@@ -464,6 +478,10 @@ int main(int argc,char**argv){
 		drawSpr(Rev,Px[0]-3,Py[0]-4,(Pt?Of:Pf)>3,shr);
 		drawSpr(Ika,Px[1]-3,Py[1]-4,(Pt?Pf:Of)>3,shb);
 		glfwSwapBuffers();
+		double gT=1./30-glfwGetTime();
+		if(gT>0&&T>oT)glfwSleep(gT);
+		else printf("%f\n",gT);
+		glfwSetTime(0);
 		while(any(tcp)){
 			int t;
 			uint16_t mt;
@@ -535,10 +553,6 @@ int main(int argc,char**argv){
 				umsgp=umsg+2;
 			}
 		}
-		double gT=1./30-glfwGetTime();
-		if(gT>0&&T>oT)glfwSleep(gT);
-		else printf("%f\n",gT);
-		glfwSetTime(0);
 		glfwPollEvents();
 		if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED))return 0;
 	}
