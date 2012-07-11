@@ -27,7 +27,7 @@ static void b1(uint16_t t){
 	w16(t);
 	w8(34);
 }
-static void b2(uint8_t t){
+static void b2(uint16_t t){
 	w16(t);
 	w8(35);
 }
@@ -43,5 +43,10 @@ void genL1(){
 		can(i*60+400,i&1,118,10,1.5,M_PI*3/2);
 	}
 	tar(666,48,160);
-	b1(721-700);
+	b1(721);
+	b2(1800);
+	can(1860,0,64,128,0,M_PI*3/2);
+	for(int i=0;i<5;i++){
+		can(i*30+1900,0,64,i*20,1./i,M_PI*3/2);
+	}
 }
