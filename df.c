@@ -699,7 +699,7 @@ int main(int argc,char**argv){
 			glRecti(128,0,136,Pe*2);
 			glRecti(136,64,144,64+T-oT);
 			retex();
-			drawSpr(Rev,Px[0]-3,Py[0]-4,Pf[0]>3,shr);
+			drawSpr(Rev,Px[0]-3,Py[0]-4,(Pf[0]&7)>3,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
 			glfwSwapBuffers();
 			double gT=1./30-glfwGetTime();

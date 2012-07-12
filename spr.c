@@ -37,7 +37,7 @@ static void dVine(float x,float y1,float y2){
 void glCirc(float xx,float yy,float r){
 	float f=1-r,fx=1,fy=r*2,x=0,y=r;
 	glBegin(GL_LINES);
-	dVine(xx,yy+r,yy-4);
+	dVine(xx,yy+r,yy-r);
 	while(x<y)
 	{
 		if(f>=0)
