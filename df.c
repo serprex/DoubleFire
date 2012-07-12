@@ -96,18 +96,12 @@ void mkpb(uint8_t p,float x,float y,float xd,float yd){
 }
 void mkLzo(){
 	if(!Lzo){
+		w8(32);
 		Lzo=1;
 		for(int i=0;i<32;i++){
 			Lzr[i][0]=Px[1]+3;
 			Lzr[i][1]=Py[1]+1;
 		}
-	}
-}
-void mkBor(){
-	if(!Bor){
-		Bor=1;
-		Box=128-Px[0];
-		Boy=256-Py[0];
 	}
 }
 void xDie(){
@@ -187,6 +181,9 @@ int rinpb(float x,float y,int r,int p){
 	for(bxy*b=PB;b<=PBtop;b++)
 		if(dst2(x,y,b->x,b->y)<=r&&b->p!=p){
 			n++;
+			wbxy(*b);
+			w8(b-PB);
+			w8(20);
 			*b--=*PBtop--;
 		}
 	return n;
@@ -219,7 +216,7 @@ void rrotxy(float*a,float x1,float y1,float x2,float y2,float m){
 }
 void erotxy(obje*e,float x,float y,float m){
 	wfloat(e->d);
-	w8(Etop-E);
+	w8(e-E);
 	w8(28);
 	rrotxy(&e->d,e->x,e->y,x,y,m);
 }
@@ -239,7 +236,7 @@ void stepBack(int n){
 				*++Etop=*e;
 				*e=robje();
 			}
-			case(10 ... 11)Pf[a-11]=0;
+			case(10 ... 11)Pf[a-10]=0;
 			case(12)PBtop--;
 			case(13){
 				obje*e=E+r8();
@@ -267,6 +264,10 @@ void stepBack(int n){
 				*b=rbxy();
 			}
 			case(22 ... 23)Pf[a-22]=r8();
+			case(24)
+				Px[0]=128-Px[0];
+				Py[0]=256-Py[0];
+				Bor=0;
 			case(25)
 				for(bxy*b=B;b<=Btop;b++){
 					b->x-=b->xd;
@@ -297,6 +298,20 @@ void stepBack(int n){
 			case(31){
 				obje*e=E+r8();
 				e->y=r16();
+			}
+			case(32 ... 33)Lzo=a-32;
+			case(34){
+				obje*e=E+r8();
+				int xy=r8(),x=xy-1&3,y=xy-1>>2;
+				e->a[xy]^=1;
+				if(x<3)e->a[xy+1]^=1;
+				if(x>0)e->a[xy-1]^=1;
+				if(y<3)e->a[xy+4]^=1;
+				if(y>0)e->a[xy-4]^=1;
+			}
+			case(35 ... 36){
+				obje*e=E+r8();
+				e->a[a-17]--;
 			}
 			}
 		}
@@ -435,10 +450,8 @@ int main(int argc,char**argv){
 				if(Pf[i]<8)Pf[i]++;
 				else Pf[i]=8+(Pf[i]+1&7);
 				if(Pe&&!(Pf[i]&7)){
-					if(Pe){
-						w8(18);
-						Pe--;
-					}
+					w8(18);
+					Pe--;
 					if(i){
 						mkpb(1,Px[1],Py[1]-3,0,-3);
 					}else{
@@ -460,13 +473,21 @@ int main(int argc,char**argv){
 			}
 			if(getX(Pc[T][i])){
 				if(i){
-					if(!Lzo&&Pe>0)mkLzo();
+					if(!Lzo&&Pe)mkLzo();
 				}else(!Bor){
-					Px[0]=128-Px[0];
-					Py[0]=256-Py[0];
-					mkBor();
+					if(!Bor){
+						w8(24);
+						Px[0]=128-Px[0];
+						Py[0]=256-Py[0];
+						Bor=1;
+						Box=128-Px[0];
+						Boy=256-Py[0];
+					}
 				}
-			}else(Lzo&&i)Lzo=0;
+			}else(Lzo&&i){
+				w8(33);
+				Lzo=0;
+			}
 		}
 		if(T==MT)notex();
 		if(Lzo||Bor){
@@ -601,6 +622,9 @@ int main(int argc,char**argv){
 						if((!(T+x+y*3&15))&&(x==0&&y==0||x==3&&y==0||x==3&&y==3||x==0&&y==3))
 							mkbxy(e->c+x+y*4,xx,yy,Px[e->a[xy]],Py[e->a[xy]],1);
 						if(!e->a[19]&&e->a[18]==48&&rdmg(xx,yy,8,!e->a[xy])){
+							w8(xy);
+							w8(e-E);
+							w8(34);
 							e->a[xy]^=1;
 							if(x<3)e->a[xy+1]^=1;
 							if(x>0)e->a[xy-1]^=1;
@@ -614,9 +638,15 @@ int main(int argc,char**argv){
 						}
 					}
 				if(allz){
+					w8(e-E);
+					w8(36);
 					e->a[19]++;
 					if(e->a[19]==16)goto kille;
-				}else(e->a[18]<48)e->a[18]++;
+				}else(e->a[18]<48){
+					w8(e-E);
+					w8(35);
+					e->a[18]++;
+				}
 			}
 			if(0)kille:{
 				wobje(*e);
@@ -661,7 +691,7 @@ int main(int argc,char**argv){
 						Pe++;
 					}
 				}else(Ph[i]<1&&!Pi){
-					xDie();
+					;//xDie();
 				}
 			}
 		}
@@ -680,15 +710,10 @@ int main(int argc,char**argv){
 		}
 		T++;
 		if(any(tcp)){
-			int len=3;
-			//ioctl(tcp,FIONREAD,&len);
-			unsigned char ubu[len],*up=ubu+2;
-			if(read(tcp,ubu,len)==-1)return 0;
-			printf("tcp:");
-			for(int i=0;i<len;i++)
-				printf(" %d",ubu[i]);
-			printf("\n");
+			unsigned char ubu[3],*up=ubu+2;
+			if(read(tcp,ubu,3)==-1)return 0;
 			uint16_t mt=*(uint16_t*)ubu;
+			printf("tcp: %d %d\n",mt,*up);
 			if(oTs[mt>>3]&=1<<(mt&7))continue;
 			oTs[mt>>3]|=1<<(mt&7);
 			Pc[mt][!Pt]=*up|128;
