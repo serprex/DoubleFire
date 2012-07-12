@@ -47,7 +47,7 @@ typedef union{
 }obje;
 typedef enum{
 	BMI,BEX,
-	ECAN=32,ETAR,EB1,EB2
+	ECAN=32,ETAR,EB1,EB2,EROT
 }oid;
 static void pushrw(){
 	crw++;
@@ -94,23 +94,6 @@ void mkpb(uint8_t p,float x,float y,float xd,float yd){
 	b->xd=xd;
 	b->yd=yd;
 }
-void mkLzo(){
-	if(!Lzo){
-		w8(32);
-		Lzo=1;
-		for(int i=0;i<32;i++){
-			Lzr[i][0]=Px[1]+3;
-			Lzr[i][1]=Py[1]+1;
-		}
-	}
-}
-void xDie(){
-	w16(Btop-B);
-	w8(17);
-	Btop=B;
-	Pe-=48;
-	Pi=96;
-}
 void mkb(int p,float x,float y,float xd,float yd){
 	w8(26);
 	bxy*b=++Btop;
@@ -136,14 +119,14 @@ static obje*mke(uint8_t t){
 	e->c=T;
 	return e;
 }
-void mkcan(uint8_t t,float x,float y,float d,float xd,float yd){
+void mkcan(uint8_t t,float x,float y,float d,float v){
 	obje*e=mke(t);
 	e->h=5;
 	e->x=x;
 	e->y=y;
 	e->d=d;
-	e->xd=xd;
-	e->yd=yd;
+	e->xd=cos(d)*d;
+	e->yd=-sin(d)*d;
 }
 void mktar(uint8_t t,float x,float y){
 	obje*e=mke(t);
@@ -163,6 +146,15 @@ void mkb1(){
 void mkb2(){
 	obje*e=mke(EB2);
 	memset(e->a+1,0,18);
+}
+void mkrot(uint8_t t,float x,float y,float d,float v){
+	obje*e=mke(t);
+	e->h=12;
+	e->x=x;
+	e->y=y;
+	e->d=M_PI/2;
+	e->xd=cos(d)*d;
+	e->yd=-sin(d)*d;
 }
 void xLz(int c,float x,float y,float d){
 	if(T==MT){
@@ -189,7 +181,7 @@ int rinpb(float x,float y,int r,int p){
 	return n;
 }
 int rinlz(float x,float y,int r){
-	return Lzo&&y<=Py[1]&&x>=Px[1]-4&&x<=Px[1]+4;
+	return Lzo&&y<=Py[1]&&x>=Px[1]-r&&x<=Px[1]+r;
 }
 int rinbo(float x,float y,int r){
 	return Bor&&dst2(x,y,Box,Boy)<=sqr(r+Bor);
@@ -277,7 +269,9 @@ void stepBack(int n){
 			case(27)
 				for(obje*e=E;e<=Etop;e++){
 					switch(e->t&127){
-					case(ECAN)
+					case(EROT)
+						e->d-=M_PI/(e->t&128?-32:32);
+					case ECAN:
 						e->x-=e->xd;
 						e->y-=e->yd;
 					}
@@ -313,6 +307,7 @@ void stepBack(int n){
 				obje*e=E+r8();
 				e->a[a-17]--;
 			}
+			case(37)Bor=r8();
 			}
 		}
 		T--;
@@ -396,8 +391,8 @@ int main(int argc,char**argv){
 			switch(*L++&127){
 			default:printf("Unknown E%x\n",L[-1]);
 			case(ECAN)
-				mkcan(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2),*(float*)(L+4),*(float*)(L+8),*(float*)(L+12));
-				L+=16;
+				mkcan(L[-1],*(int16_t*)L,*(int16_t*)(L+2),*(float*)(L+4),*(float*)(L+8));
+				L+=12;
 			case(ETAR)
 				mktar(L[-1],*(uint16_t*)L,*(uint16_t*)(L+2));
 				L+=4;
@@ -405,12 +400,17 @@ int main(int argc,char**argv){
 				mkb1();
 			case(EB2)
 				mkb2();
+			case(EROT)
+				mkrot(L[-1],*(int16_t*)L,*(int16_t*)(L+2),*(float*)(L+4),*(float*)(L+8));
+				L+=12;
 			}
 			w8(L-LL);
 			w8(8);
 		}
 		if(T==MT){
 			printf("--%d\n",T);
+			glfwPollEvents();
+			if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED))return 0;
 			Pc[T][Pt]=glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;
 			uint8_t pcm[3];
 			*(uint16_t*)pcm=T;
@@ -473,16 +473,21 @@ int main(int argc,char**argv){
 			}
 			if(getX(Pc[T][i])){
 				if(i){
-					if(!Lzo&&Pe)mkLzo();
-				}else(!Bor){
-					if(!Bor){
-						w8(24);
-						Px[0]=128-Px[0];
-						Py[0]=256-Py[0];
-						Bor=1;
-						Box=128-Px[0];
-						Boy=256-Py[0];
+					if(!Lzo){
+						w8(32);
+						Lzo=1;
+						for(int i=0;i<32;i++){
+							Lzr[i][0]=Px[1]+3;
+							Lzr[i][1]=Py[1]+1;
+						}
 					}
+				}else(!Bor){
+					w8(24);
+					Px[0]=128-Px[0];
+					Py[0]=256-Py[0];
+					Bor=1;
+					Box=128-Px[0];
+					Boy=256-Py[0];
 				}
 			}else(Lzo&&i){
 				w8(33);
@@ -510,7 +515,9 @@ int main(int argc,char**argv){
 					glColor3ubv(wht);
 					glCirc(Box,Boy,Bor);
 				}
-				if(++Bor>16)Bor=0;
+				w8(Bor);
+				w8(37);
+				if(++Bor>24)Bor=0;
 			}
 		}
 		if(PBtop>=PB)w8(14);
@@ -543,10 +550,10 @@ int main(int argc,char**argv){
 				e->x+=e->xd;
 				e->y+=e->yd;
 				erotxy(e,Px[et],Py[et],M_PI/16);
-				if(T-e->c&8||!(T-e->c&3))
+				if(!(T-e->c&7)||!(T-e->c&3))
 					mkbd(e->c,e->x,e->y,e->d,6);
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
-				else(e->h<3||rdmg(e->x,e->y,e->h*3/2,2)){
+				else(e->h<4||rdmg(e->x,e->y,e->h*3/2,2)){
 					w8(e->h);
 					w8(e-E);
 					w8(29);
@@ -615,7 +622,7 @@ int main(int argc,char**argv){
 					if(e->h<8)goto kille;
 				}
 			case(EB2)
-				int allz=1;
+				et=1;
 				for(int y=0;y<4;y++)
 					for(int x=0;x<4;x++){
 						int xx=28+x*e->a[18]/2,yy=92+y*e->a[18]/2,xy=x+y*4+1;
@@ -631,13 +638,13 @@ int main(int argc,char**argv){
 							if(y<3)e->a[xy+4]^=1;
 							if(y>0)e->a[xy-4]^=1;
 						}
-						if(!e->a[xy])allz=0;
+						if(!e->a[xy])et=0;
 						if(T==MT){
 							glColor3ubv(red+e->a[xy]);
 							glCirc(28+x*e->a[18]/2,92+y*e->a[18]/2-e->a[19],e->a[18]/4-e->a[19]/2);
 						}
 					}
-				if(allz){
+				if(et){
 					w8(e-E);
 					w8(36);
 					e->a[19]++;
@@ -646,6 +653,28 @@ int main(int argc,char**argv){
 					w8(e-E);
 					w8(35);
 					e->a[18]++;
+				}
+			case(EROT)
+				e->x+=e->xd;
+				e->y+=e->yd;
+				e->d+=M_PI/32*(et?-32:32);
+				mkbd(e->c,e->x,e->y,8,e->d);
+				mkbd(e->c,e->x,e->y,8,e->d+M_PI*2/3);
+				mkbd(e->c,e->x,e->y,8,e->d+M_PI*4/3);
+				if(T==MT){
+					rndcol();
+					glCirc(e->x,e->y,e->h);
+					glColor3ubv(wht);
+					glLine(e->x,e->y,e->x+cos(e->d)*32,e->y-sin(e->d)*32);
+					glLine(e->x,e->y,e->x+cos(e->d+M_PI*2/3)*32,e->y-sin(e->d+M_PI*2/3)*32);
+					glLine(e->x,e->y,e->x+cos(e->d+M_PI*4/3)*32,e->y-sin(e->d+M_PI*4/3)*32);
+				}
+				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
+				else(e->h<8||rdmg(e->x,e->y,e->h*3/2,2)){
+					w8(e->h);
+					w8(e-E);
+					w8(29);
+					e->h--;
 				}
 			}
 			if(0)kille:{
@@ -663,17 +692,21 @@ int main(int argc,char**argv){
 			b->y+=b->yd;
 			for(int i=0;i<2;i++)
 				if(btop(i,b)<256){
-					w8(16);
-					Pe++;
+					if(Pe<127){
+						w8(16);
+						Pe++;
+					}
 					wbxy(*b);
 					w16(b-B);
 					w8(21);
 					*b--=*Btop--;
-					Ph[i]--;
-					Php[i]=b->p;
+					if(Php[i]!=b->p){
+						Ph[i]--;
+						Php[i]=b->p;
+					}
 					break;
 				}
-			if(b->y<-1||b->x<-1||b->x>257||b->y>257){
+			if(b->y<-1||b->x<-1||b->x>129||b->y>257){
 				wbxy(*b);
 				w16(b-B);
 				w8(21);
@@ -684,16 +717,17 @@ int main(int argc,char**argv){
 			w8(15);
 			Pi--;
 		}else{
-			for(int i=0;i<2;i++){
-				if(Ph[i]==1){
-					if(Pe<128){
-						w8(16);
-						Pe++;
-					}
-				}else(Ph[i]<1&&!Pi){
-					;//xDie();
+			for(int i=0;i<2;i++)
+				if(Ph[i]==1&&Pe<127){
+					w8(16);
+					Pe++;
+				}else(Ph[i]<1){
+					w16(Btop-B);
+					w8(17);
+					Btop=B;
+					Pe-=48;
+					Pi=96;
 				}
-			}
 		}
 		if(T==MT){
 			glRecti(128,0,136,Pe*2);
@@ -721,9 +755,5 @@ int main(int argc,char**argv){
 			if(mt>oT)oT=mt;
 		}
 		while(rwp&&rwT<oT&&rwT<T)shiftrw();
-		//if(++T>MT){
-			glfwPollEvents();
-			if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED))return 0;
-		//}
 	}
 }

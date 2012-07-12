@@ -14,8 +14,7 @@ static void can(uint16_t t,int p,int16_t x,int16_t y,float v,float d){
 	w16(x);
 	w16(y);
 	wfloat(d);
-	wfloat(cos(d)*v);
-	wfloat(-sin(d)*v);
+	wfloat(v);
 }
 static void tar(uint16_t t,int16_t x,int16_t y){
 	w16(t);
@@ -31,6 +30,14 @@ static void b2(uint16_t t){
 	w16(t);
 	w8(35);
 }
+static void rot(uint16_t t,int dd,int16_t x,int16_t y,float v,float d){
+	w16(t);
+	w8(dd?164:36);
+	w16(x);
+	w16(y);
+	wfloat(d);
+	wfloat(v);
+}
 void genL1(){
 	Lp=Lv;
 	for(int i=0;i<5;i++){
@@ -44,9 +51,12 @@ void genL1(){
 	}
 	tar(666,48,160);
 	b1(721);
-	b2(1800);
-	can(1860,0,64,128,0,M_PI*3/2);
+	for(int i=0;i<16;i++){
+		rot(1000+i*100,i&1,i*8,-4,2,M_PI*3/2);
+	}
+	b2(2800);
+	can(2860,0,64,128,0,M_PI*3/2);
 	for(int i=0;i<5;i++){
-		can(i*30+1900,0,64,i*20,1./i,M_PI*3/2);
+		can(i*30+2900,0,64,i*20,1./i,M_PI*3/2);
 	}
 }
