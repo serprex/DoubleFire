@@ -37,7 +37,7 @@ typedef struct{
 	float x,y,xd,yd;
 }bxy;
 typedef union{
-	uint8_t a[20];
+	uint8_t a[24];
 	struct{
 		uint8_t t;
 		int8_t h;
@@ -622,13 +622,12 @@ int main(int argc,char**argv){
 					if(e->h<8)goto kille;
 				}
 			case(EB2)
-				et=1;
 				for(int y=0;y<4;y++)
 					for(int x=0;x<4;x++){
-						int xx=28+x*e->a[18]/2,yy=92+y*e->a[18]/2,xy=x+y*4+1;
+						int xx=28+x*(e->a[18]/2-e->a[19]),yy=92+y*(e->a[18]/2-e->a[19]),xy=x+y*4+1;
 						if((!(T+x+y*3&15))&&(x==0&&y==0||x==3&&y==0||x==3&&y==3||x==0&&y==3))
 							mkbxy(e->c+x+y*4,xx,yy,Px[e->a[xy]],Py[e->a[xy]],1);
-						if(!e->a[19]&&e->a[18]==48&&rdmg(xx,yy,8,!e->a[xy])){
+						if(rdmg(xx,yy,8,!e->a[xy])){
 							w8(xy);
 							w8(e-E);
 							w8(34);
@@ -638,21 +637,28 @@ int main(int argc,char**argv){
 							if(y<3)e->a[xy+4]^=1;
 							if(y>0)e->a[xy-4]^=1;
 						}
-						if(!e->a[xy])et=0;
 						if(T==MT){
 							glColor3ubv(red+e->a[xy]);
-							glCirc(28+x*e->a[18]/2,92+y*e->a[18]/2-e->a[19],e->a[18]/4-e->a[19]/2);
+							glCirc(xx,yy,e->a[18]/4-e->a[19]/2);
 						}
 					}
+				et=0;
+				for(int i=0;i<16;i++)
+					if(!e->a[i+1]){
+						et=1;
+						break;
+					}
 				if(et){
+					if(e->a[18]<48){
+						w8(e-E);
+						w8(35);
+						e->a[18]++;
+					}
+				}else{
 					w8(e-E);
 					w8(36);
 					e->a[19]++;
-					if(e->a[19]==16)goto kille;
-				}else(e->a[18]<48){
-					w8(e-E);
-					w8(35);
-					e->a[18]++;
+					if(e->a[19]==24)goto kille;
 				}
 			case(EROT)
 				e->x+=e->xd;
