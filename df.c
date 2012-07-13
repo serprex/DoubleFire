@@ -11,7 +11,7 @@ int crw=-1,rwp,rwT;
 #define getA(x) (!!((x)&8))
 #define getS(x) (!!((x)&16))
 #define getW(x) (!!((x)&32))
-int udp,tcp;
+int udp,welt;
 uint16_t T,MT,oT,mnT;
 static uint8_t oTs[8192],rcol[3],wellc;
 static const uint8_t col[]={255,0,0,255,255,255,127,63,127,255,0},
@@ -349,28 +349,29 @@ int main(int argc,char**argv){
 	}
 	if(argc>2){
 		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=2000};
-		if((tcp=socket(AF_INET,SOCK_STREAM,0))<0||inet_aton(argv[2],&ip.sin_addr)<=0||connect(tcp,(struct sockaddr*)&ip,sizeof(ip))<0){
-			fprintf(stderr,"c%d\n",errno);
-			return 1;
-		}
+		inet_aton(argv[2],&ip.sin_addr);
 		ip.sin_port=2000+!Pt;
 		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
 	}else{
-		int lis=socket(AF_INET,SOCK_STREAM,0);
-		static const uint8_t one8=1;
-		setsockopt(lis,SOL_SOCKET,SO_REUSEADDR,&one8,1);
-		struct sockaddr_in ip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=2000};
+		struct sockaddr_in ip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=2000+!Pt};
 		socklen_t sip=sizeof(ip);
-		if(bind(lis,(void*)&ip,sizeof(ip))<0||listen(lis,1)<0||(tcp=accept(lis,(struct sockaddr*)&ip,&sip))<0){
-			fprintf(stderr,"s%d\n",errno);
-			return 1;
-		}
-		close(lis);
-		ip.sin_port=2000+!Pt;
+		recvfrom(udp,0,0,0,(struct sockaddr*)&ip,&sip);
 		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
 	}
-	static const int one32=1;
-	setsockopt(tcp,IPPROTO_TCP,TCP_NODELAY,(char*)&one32,sizeof(int));
+	for(;;){
+		write(udp,0,0);
+		if(any(udp)){
+			read(udp,0,0);
+			break;
+		}
+		glfwPollEvents();
+		if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED))return 0;
+		glColor3ub(rand(),rand(),rand());
+		glRecti(0,0,320,512);
+		glfwSwapBuffers();
+		glfwSleep(1./10);
+	}
+	glfwSetTime(0);
 	for(;;){
 		pushrw();
 		for(int i=0;i<3;i++)
@@ -416,7 +417,7 @@ int main(int argc,char**argv){
 			uint8_t pcm[3];
 			*(uint16_t*)pcm=T;
 			pcm[2]=Pc[T][Pt];
-			write(tcp,pcm,3);
+			write(udp,pcm,3);
 		}
 		if(!(Pc[T][!Pt]&128)){
 			int ot=T;
@@ -754,16 +755,21 @@ int main(int argc,char**argv){
 			MT++;
 		}
 		T++;
-		if(any(tcp)){
-			unsigned char ubu[3],*up=ubu+2;
-			if(read(tcp,ubu,3)==-1)return 0;
-			uint16_t mt=*(uint16_t*)ubu;
-			printf("tcp: %d %d\n",mt,*up);
-			if(oTs[mt>>3]&=1<<(mt&7))continue;
-			oTs[mt>>3]|=1<<(mt&7);
-			Pc[mt][!Pt]=*up|128;
-			if(mt<T)stepBack(T-mt);
-			if(mt>oT)oT=mt;
+		if(any(udp)){
+			uint8_t ubu[3],*up=ubu+2;
+			int len=read(udp,ubu,3);
+			if(len==-1)return 0;
+			if(!len){
+				if(++welt&1)write(udp,0,0);
+			}else{
+				uint16_t mt=*(uint16_t*)ubu;
+				printf("udp: %d %d\n",mt,*up);
+				if(oTs[mt>>3]&=1<<(mt&7))continue;
+				oTs[mt>>3]|=1<<(mt&7);
+				Pc[mt][!Pt]=*up|128;
+				if(mt<T)stepBack(T-mt);
+				if(mt>oT)oT=mt;
+			}
 		}
 		while(rwp&&rwT<oT&&rwT<T)shiftrw();
 	}
