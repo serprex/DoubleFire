@@ -577,7 +577,7 @@ int main(int argc,char**argv){
 				e->y+=e->yd;
 				erotxy(e,Px[et],Py[et],M_PI/16);
 				if(!(T-e->c&7)||!(T-e->c&3))
-					mkbd(e->c,e->x,e->y,e->d,6);
+					mkbd(e->c,e->x,e->y,6,e->d);
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 				else(e->h<4||rdmg(e->x,e->y,e->h*3/2,2)){
 					w8(e-E);
@@ -728,13 +728,14 @@ int main(int argc,char**argv){
 				}
 		}
 		if(T==MT){
-			glRecti(128,0,136,Pe*2);
-			glRecti(136,64,144,64+T-oT);
-			glEnable(GL_BLEND);
 			if(Bor){
 				glColor3ubv(wht);
 				glCirc(Box,Boy,Bor);
 			}
+			rndcol();
+			glRecti(128,0,136,Pe*2);
+			glRecti(136,64,144,64+T-oT);
+			glEnable(GL_BLEND);
 			if(Lzo){
 				glBegin(GL_QUAD_STRIP);
 				for(int i=0;i<32;i++){
@@ -756,12 +757,13 @@ int main(int argc,char**argv){
 		}
 		T++;
 		if(any(udp)){
-			uint8_t ubu[3],*up=ubu+2;
-			int len=read(udp,ubu,3);
-			if(len==-1)return 0;
+			int len;
+			ioctl(udp,FIONREAD,&len);
 			if(!len){
 				if(++welt&1)write(udp,0,0);
 			}else{
+				uint8_t ubu[len],*up=ubu+2;
+				read(udp,ubu,3);
 				uint16_t mt=*(uint16_t*)ubu;
 				printf("udp: %d %d\n",mt,*up);
 				if(oTs[mt>>3]&=1<<(mt&7))continue;
