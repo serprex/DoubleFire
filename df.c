@@ -103,7 +103,7 @@ void mkb(int p,float x,float y,float xd,float yd){
 	b->xd=xd;
 	b->yd=yd;
 }
-void mkbd(int p,float x,float y,float d,float v){
+void mkbd(int p,float x,float y,float v,float d){
 	mkb(p,x,y,cos(d)*v,-sin(d)*v);
 }
 void mkbxy(int p,float x,float y,float xx,float yy,float v){
@@ -242,7 +242,10 @@ void stepBack(int n){
 				}
 			case(15)Pi++;
 			case(16)Pe--;
-			case(17)Btop=B+r16();
+			case(17)
+				Btop=B+r16();
+				Pe+=48;
+				Pi=0;
 			case(18)Pe++;
 			case(19)PBtop--;
 			case(20){
@@ -270,7 +273,7 @@ void stepBack(int n){
 				for(obje*e=E;e<=Etop;e++){
 					switch(e->t&127){
 					case(EROT)
-						e->d-=M_PI/(e->t&128?-32:32);
+						e->d-=M_PI/(e->t&128?128:-128);
 					case ECAN:
 						e->x-=e->xd;
 						e->y-=e->yd;
@@ -303,11 +306,9 @@ void stepBack(int n){
 				if(y<3)e->a[xy+4]^=1;
 				if(y>0)e->a[xy-4]^=1;
 			}
-			case(35 ... 36){
-				obje*e=E+r8();
-				e->a[a-17]--;
-			}
+			case(35 ... 36)E[r8()].a[a-17]--;
 			case(37)Bor=r8();
+			case(38)E[r8()].h++;
 			}
 		}
 		T--;
@@ -494,36 +495,23 @@ int main(int argc,char**argv){
 				Lzo=0;
 			}
 		}
-		if(T==MT)notex();
-		if(Lzo||Bor){
-			if(Lzo){
-				memmove(Lzr+1,Lzr,248);
-				Lzr[0][0]=Px[1]+(rand()%3);
-				Lzr[0][1]=Py[1]-3+(rand()&3);
-				if(T==MT){
-					glBegin(GL_QUAD_STRIP);
-					for(int i=0;i<32;i++){
-						glColor3ub(255-i*8,255-i*8,255-i*8);
-						glVertex2f(Lzr[i][0],0);
-						glVertex2fv(Lzr[i]);
-					}
-					glEnd();
-				}
-			}
-			if(Bor){
-				if(T==MT){
-					glColor3ubv(wht);
-					glCirc(Box,Boy,Bor);
-				}
-				w8(Bor);
-				w8(37);
-				if(++Bor>24)Bor=0;
-			}
+		if(Bor){
+			w8(Bor);
+			w8(37);
+			if(++Bor>24)Bor=0;
+		}
+		if(Lzo){
+			memmove(Lzr+1,Lzr,248);
+			Lzr[0][0]=Px[1]+(rand()%3);
+			Lzr[0][1]=Py[1]-3+(rand()&3);
+		}
+		if(T==MT){
+			notex();
+			glDisable(GL_BLEND);
+			glColor3ubv(wht);
 		}
 		if(PBtop>=PB)w8(14);
-		glColor3ubv(wht);
 		for(bxy*b=PB;b<=PBtop;b++){
-			glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
 			b->x+=b->xd;
 			b->y+=b->yd;
 			if(b->y<-1||b->x<-1||b->x>129||b->y>257){
@@ -531,21 +519,58 @@ int main(int argc,char**argv){
 				w8(b-PB);
 				w8(20);
 				*b--=*PBtop--;
-			}else glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+			}else(T==MT)glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
 		}
 		Ph[0]=2;
 		Ph[1]=2-Lzo;
 		Php[0]=0;
 		Php[1]=0;
-		w8(27);
+		if(T==MT)rndcol();
+		if(Btop>=B)w8(25);
+		for(bxy*b=B;b<=Btop;b++){
+			if(T==MT){
+				glBegin(GL_LINES);
+				glVertex2f(b->x,b->y);
+			}
+			b->x+=b->xd;
+			b->y+=b->yd;
+			if(T==MT){
+				glVertex2f(b->x,b->y);
+				glEnd();
+				glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+			}
+			if(b->y<0||b->x<0||b->x>128||b->y>256)goto killb;
+			for(int i=0;i<2;i++)
+				if(btop(i,b)<256){
+					if(Pe<127){
+						w8(16);
+						Pe++;
+					}
+					if(Php[i]!=b->p){
+						Ph[i]--;
+						Php[i]=b->p;
+					}
+					goto killb;
+				}
+			if(0){killb:
+				wbxy(*b);
+				w16(b-B);
+				w8(21);
+				*b--=*Btop--;
+			}
+		}
+		if(Etop>=E)w8(27);
 		for(obje*e=E;e<=Etop;e++){
 			float r;
 			int et=!!(e->t&128);
 			switch(e->t&127){
 			case(ECAN)
 				if(T==MT){
+					float r=min(T-e->c,e->h);
+					glColor3ubv(wht);
+					glLine(e->x,e->y,e->x+cos(e->d)*r*2,e->y-sin(e->d)*r*2);
 					glColor3ubv(red+et);
-					glCirc(e->x,e->y,min(T-e->c,e->h));
+					glCirc(e->x,e->y,r);
 				}
 				e->x+=e->xd;
 				e->y+=e->yd;
@@ -554,15 +579,13 @@ int main(int argc,char**argv){
 					mkbd(e->c,e->x,e->y,e->d,6);
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 				else(e->h<4||rdmg(e->x,e->y,e->h*3/2,2)){
-					w8(e->h);
 					w8(e-E);
-					w8(29);
+					w8(38);
 					e->h--;
 				}
 			case(ETAR)
 				r=min(T-e->c,abs(e->h));
 				if(T==MT){
-					glDisable(GL_BLEND);
 					glColor3ubv(wht);
 					glCirc(e->x,e->y,r);
 					rndcol();
@@ -571,7 +594,6 @@ int main(int argc,char**argv){
 					glCirc(e->x,e->y,min(r,16));
 					rndcol();
 					glCirc(e->x,e->y,min(r,8));
-					glEnable(GL_BLEND);
 				}
 				et=e->h<6?4:rdmg(e->x,e->y,r,2);
 				if(et){
@@ -614,12 +636,11 @@ int main(int argc,char**argv){
 					w8(e-E);
 					w8(29);
 					e->h++;
-				}else(rdmg(e->x,e->y,e->h,!!(e->h&8))){
-					w8(e->h);
+				}else(rdmg(e->x,e->y,e->h,!!(e->h&8))||e->h<7){
 					w8(e-E);
-					w8(29);
+					w8(38);
 					e->h--;
-					if(e->h<8)goto kille;
+					if(!e->h)goto kille;
 				}
 			case(EB2)
 				for(int y=0;y<4;y++)
@@ -663,7 +684,7 @@ int main(int argc,char**argv){
 			case(EROT)
 				e->x+=e->xd;
 				e->y+=e->yd;
-				e->d+=M_PI/32*(et?-32:32);
+				e->d+=M_PI/(et?128:-128);
 				mkbd(e->c,e->x,e->y,8,e->d);
 				mkbd(e->c,e->x,e->y,8,e->d+M_PI*2/3);
 				mkbd(e->c,e->x,e->y,8,e->d+M_PI*4/3);
@@ -677,9 +698,8 @@ int main(int argc,char**argv){
 				}
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 				else(e->h<8||rdmg(e->x,e->y,e->h*3/2,2)){
-					w8(e->h);
 					w8(e-E);
-					w8(29);
+					w8(38);
 					e->h--;
 				}
 			}
@@ -689,35 +709,6 @@ int main(int argc,char**argv){
 				w8(9);
 				*e--=*Etop--;
 			}
-		}
-		rndcol();
-		if(Btop>=B)w8(25);
-		for(bxy*b=B;b<=Btop;b++){
-			if(T==MT)glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
-			b->x+=b->xd;
-			b->y+=b->yd;
-			for(int i=0;i<2;i++)
-				if(btop(i,b)<256){
-					if(Pe<127){
-						w8(16);
-						Pe++;
-					}
-					wbxy(*b);
-					w16(b-B);
-					w8(21);
-					*b--=*Btop--;
-					if(Php[i]!=b->p){
-						Ph[i]--;
-						Php[i]=b->p;
-					}
-					break;
-				}
-			if(b->y<-1||b->x<-1||b->x>129||b->y>257){
-				wbxy(*b);
-				w16(b-B);
-				w8(21);
-				*b--=*Btop--;
-			}else(T==MT)glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
 		}
 		if(Pi){
 			w8(15);
@@ -738,6 +729,20 @@ int main(int argc,char**argv){
 		if(T==MT){
 			glRecti(128,0,136,Pe*2);
 			glRecti(136,64,144,64+T-oT);
+			glEnable(GL_BLEND);
+			if(Bor){
+				glColor3ubv(wht);
+				glCirc(Box,Boy,Bor);
+			}
+			if(Lzo){
+				glBegin(GL_QUAD_STRIP);
+				for(int i=0;i<32;i++){
+					glColor3ub(255-i*8,255-i*8,255-i*8);
+					glVertex2f(Lzr[i][0],0);
+					glVertex2fv(Lzr[i]);
+				}
+				glEnd();
+			}
 			retex();
 			drawSpr(Rev,Px[0]-3,Py[0]-4,(Pf[0]&7)>3,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
