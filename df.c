@@ -12,8 +12,8 @@ int crw=-1,rwp,rwT;
 #define getS(x) (!!((x)&16))
 #define getW(x) (!!((x)&32))
 int udp,welt;
-uint16_t T,MT,oT,mnT;
-static uint8_t oTs[8192],rcol[3],wellc;
+uint16_t T,MT,mnT,mxT;
+static uint8_t rcol[3],wellc;
 static const uint8_t col[]={255,0,0,255,255,255,127,63,127,255,0},
 	*red=col,*blu=col+1,*wht=col+3,*shr=col+5,*shb=col+7;
 void rndcol(){
@@ -412,18 +412,27 @@ int main(int argc,char**argv){
 		if(T==MT){
 			printf("--%d\n",T);
 			glfwPollEvents();
-			if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED))return 0;
+			if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){
+				uint8_t a=0;
+				write(udp,&a,1);
+				return 0;
+			}
 			Pc[T][Pt]=glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;
-			uint8_t pcm[3];
+			int len=3;
+			uint8_t pcm[5];
 			*(uint16_t*)pcm=T;
 			pcm[2]=Pc[T][Pt];
-			write(udp,pcm,3);
+			if(mnT+12<T){
+				len+=2;
+				*(uint16_t*)(pcm+3)=mnT;
+			}
+			write(udp,pcm,len);
 		}
 		if(!(Pc[T][!Pt]&128)){
 			int ot=T;
 			while(ot){
 				ot--;
-				if(Pc[oT][!Pt]&128)Pc[T][!Pt]=Pc[ot][!Pt]&127;
+				if(Pc[ot][!Pt]&128)Pc[T][!Pt]=Pc[ot][!Pt]&127;
 			}
 		}
 		for(int i=0;i<2;i++){
@@ -734,7 +743,8 @@ int main(int argc,char**argv){
 			}
 			rndcol();
 			glRecti(128,0,136,Pe*2);
-			glRecti(136,64,144,64+T-oT);
+			glRecti(136,64,144,64+T-mnT);
+			glRecti(144,64,152,64+T-mxT);
 			glEnable(GL_BLEND);
 			if(Lzo){
 				glBegin(GL_QUAD_STRIP);
@@ -750,29 +760,37 @@ int main(int argc,char**argv){
 			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
 			glfwSwapBuffers();
 			double gT=1./30-glfwGetTime();
-			if(gT>0&&(T>oT||1))glfwSleep(gT);
+			if(gT>0)glfwSleep(gT);
 			else printf("%f\n",gT);
 			glfwSetTime(0);
 			MT++;
 		}
 		T++;
 		if(any(udp)){
-			int len;
-			ioctl(udp,FIONREAD,&len);
+			uint8_t ubu[5],*up=ubu+2;
+			int len=read(udp,ubu,5);
 			if(!len){
 				if(++welt&1)write(udp,0,0);
-			}else{
-				uint8_t ubu[len],*up=ubu+2;
-				read(udp,ubu,3);
+			}else(len==1){
+				return 0;
+			}else(len>=3){
 				uint16_t mt=*(uint16_t*)ubu;
-				printf("udp: %d %d\n",mt,*up);
-				if(oTs[mt>>3]&=1<<(mt&7))continue;
-				oTs[mt>>3]|=1<<(mt&7);
-				Pc[mt][!Pt]=*up|128;
-				if(mt<T)stepBack(T-mt);
-				if(mt>oT)oT=mt;
+				printf("udp%d: %d %d\n",len,mt,*up);
+				if(!(Pc[mt][!Pt]&128)){
+					if(len==5){
+						uint16_t rt=*(uint16_t*)(ubu+3);
+						uint8_t pcm[3];
+						*(uint16_t*)pcm=rt;
+						pcm[2]=Pc[rt][Pt];
+						write(udp,pcm,3);
+					}
+					Pc[mt][!Pt]=*up|128;
+					if(mt<T)stepBack(T-mt);
+					if(mt==mnT)mnT++;
+					if(mt>mxT)mxT=mt;
+				}
 			}
 		}
-		while(rwp&&rwT<oT&&rwT<T)shiftrw();
+		while(rwp&&rwT<mnT&&rwT<T)shiftrw();
 	}
 }
