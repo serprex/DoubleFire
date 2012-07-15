@@ -1,4 +1,4 @@
-typedef enum{Ika,Rev,LSPR}sprid;
+typedef enum{Ika,Kae,LSPR}sprid;
 extern struct spr{
 	short x,y;
 	unsigned char w,h;

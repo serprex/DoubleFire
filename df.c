@@ -14,8 +14,8 @@ int crw=-1,rwp,rwT;
 int udp,welt;
 uint16_t T,MT,mnT,mxT;
 static uint8_t rcol[3],wellc;
-static const uint8_t col[]={255,0,0,255,255,255,127,63,127,255,0},
-	*red=col,*blu=col+1,*wht=col+3,*shr=col+5,*shb=col+7;
+static const uint8_t col[]={255,0,0,255,255,255,95,95,159,255,0,0,0},
+	*red=col,*blu=col+1,*wht=col+3,*shr=col+5,*shb=col+7,*blk=col+10;
 void rndcol(){
 	glColor3ubv(rcol);
 }
@@ -50,23 +50,26 @@ typedef enum{
 	ECAN=32,ETAR,EB1,EB2,EROT
 }oid;
 static void pushrw(){
+	/*int shift=min(mnT,T)-rwT;
+	if(shift>0){
+		printf("<<%d %d %d",shift,rwp,rwT);
+		crw-=shift;
+		rwT+=shift;
+		for(int i=0;i<shift;i++)
+			free(rw[i].p);
+		memmove(rw,rw+shift,sizeof(*rw)*(rwp-=shift));
+	}*/
 	crw++;
 	printf(">>%d\n",crw);
 	if(crw==rwp){
 		rw=realloc(rw,sizeof(*rw)*++rwp);
+		printf("rw%d %d %p\n",T,rwT,rw);
 		rw[crw].p=0;
 		rw[crw].n=0;
 	}
 }
-static void shiftrw(){
-	rwT++;
-	crw--;
-	printf("<<%d\n",rwT);
-	free(rw->p);
-	memmove(rw,rw+1,sizeof(*rw)*--rwp);
-}
-#define w(x) static void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
-#define wt(t) static void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);return*(t*)(rw[crw].p+rw[crw].n);}
+#define w(x) static void w##x(uint##x##_t a){fprintf(stderr,"rw %p",rw);rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);fprintf(stderr," %p\n",rw);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
+#define wt(t) static void w##t(t a){fprintf(stderr,"rw %p",rw);rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));fprintf(stderr," %p\n",rw);*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);return*(t*)(rw[crw].p+rw[crw].n);}
 w(8)
 w(16)
 w(32)
@@ -107,10 +110,10 @@ void mkbd(int p,float x,float y,float v,float d){
 	mkb(p,x,y,cos(d)*v,-sin(d)*v);
 }
 void mkbxy(int p,float x,float y,float xx,float yy,float v){
-	xx=xx-x;
-	yy=yy-y;
-	float xy=sqrt(xx*xx+yy*yy)?:1;
-	mkb(p,x,y,xx*v/xy,yy*v/xy);
+	xx-=x;
+	yy-=y;
+	float xy=sqrt(xx*xx+yy*yy);
+	if(xy)mkb(p,x,y,xx*v/xy,yy*v/xy);
 }
 static obje*mke(uint8_t t){
 	w8(7);
@@ -125,8 +128,8 @@ void mkcan(uint8_t t,float x,float y,float d,float v){
 	e->x=x;
 	e->y=y;
 	e->d=d;
-	e->xd=cos(d)*d;
-	e->yd=-sin(d)*d;
+	e->xd=cos(d)*v;
+	e->yd=-sin(d)*v;
 }
 void mktar(uint8_t t,float x,float y){
 	obje*e=mke(t);
@@ -153,8 +156,8 @@ void mkrot(uint8_t t,float x,float y,float d,float v){
 	e->x=x;
 	e->y=y;
 	e->d=M_PI/2;
-	e->xd=cos(d)*d;
-	e->yd=-sin(d)*d;
+	e->xd=cos(d)*v;
+	e->yd=-sin(d)*v;
 }
 void xLz(int c,float x,float y,float d){
 	if(T==MT){
@@ -213,11 +216,13 @@ void erotxy(obje*e,float x,float y,float m){
 	rrotxy(&e->d,e->x,e->y,x,y,m);
 }
 void stepBack(int n){
-	printf("sb %d %d",n,crw);
+	printf("sb %d %d\n",n,crw);
 	for(;;){
 		while(rw[crw].n){
-			uint8_t a;
-			switch(a=r8()){
+			printf("rwcrwn %d\n",rw[crw].n);
+			uint8_t a=r8();
+			printf("\ta:%d %d\n",a,rw[crw].n);
+			switch(a){
 			case(2 ... 3)Px[a-2]=rfloat();
 			case(4 ... 5)Py[a-4]=rfloat();
 			case(6)Pe=r8();
@@ -243,12 +248,13 @@ void stepBack(int n){
 			case(15)Pi++;
 			case(16)Pe--;
 			case(17)
-				Pe+=48;
-				Pi=0;
 				Btop=B+r16();
+				printf("\tM17 %d\n",Btop-B);
 				for(bxy*b=Btop;b>=B;b--)
 					*b=rbxy();
-			case(18)Pe++;
+			case 18:
+				Pe+=48;
+				Pi=0;
 			case(19)PBtop--;
 			case(20){
 				bxy*b=PB+r8();
@@ -311,6 +317,7 @@ void stepBack(int n){
 			case(35 ... 36)E[r8()].a[a-17]--;
 			case(37)Bor=r8();
 			case(38)E[r8()].h++;
+			case(40)Pe++;
 			}
 		}
 		T--;
@@ -350,12 +357,11 @@ int main(int argc,char**argv){
 		return 1;
 	}
 	if(argc>2){
-		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=2000};
+		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=2000+!Pt};
 		inet_aton(argv[2],&ip.sin_addr);
-		ip.sin_port=2000+!Pt;
 		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
 	}else{
-		struct sockaddr_in ip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=2000+!Pt};
+		struct sockaddr_in ip;
 		socklen_t sip=sizeof(ip);
 		recvfrom(udp,0,0,0,(struct sockaddr*)&ip,&sip);
 		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
@@ -459,7 +465,7 @@ int main(int argc,char**argv){
 				if(Pf[i]<8)Pf[i]++;
 				else Pf[i]=8+(Pf[i]+1&7);
 				if(Pe&&!(Pf[i]&7)){
-					w8(18);
+					w8(40);
 					Pe--;
 					if(i){
 						mkpb(1,Px[1],Py[1]-3,0,-3);
@@ -530,6 +536,8 @@ int main(int argc,char**argv){
 			}else(T==MT){
 				glColor3ubv(red+b->p);
 				glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+				glColor3ubv(b->p?wht:blk);
+				glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
 			}
 		}
 		Ph[0]=2;
@@ -730,11 +738,13 @@ int main(int argc,char**argv){
 					w8(16);
 					Pe++;
 				}else(Ph[i]<1){
-					for(bxy*b=B;b<=Btop;b++)
-						wbxy(*b);
-					w16(Btop-B);
-					w8(17);
-					Btop=B-1;
+					if(Btop>=B){
+						for(bxy*b=B;b<=Btop;b++)
+							wbxy(*b);
+						w16(Btop-B);
+						w8(17);
+						Btop=B-1;
+					}else w8(18);
 					Pe-=48;
 					Pi=96;
 				}
@@ -759,7 +769,7 @@ int main(int argc,char**argv){
 				glEnd();
 			}
 			retex();
-			drawSpr(Rev,Px[0]-3,Py[0]-4,(Pf[0]&7)>3,shr);
+			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&7)>3,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
 			glfwSwapBuffers();
 			double gT=1./30-glfwGetTime();
@@ -769,7 +779,7 @@ int main(int argc,char**argv){
 			MT++;
 		}
 		T++;
-		if(any(udp)){
+		while(any(udp)){
 			uint8_t ubu[5],*up=ubu+2;
 			int len=read(udp,ubu,5);
 			if(!len){
@@ -794,6 +804,5 @@ int main(int argc,char**argv){
 				}
 			}
 		}
-		while(crw!=-1&&rwT<mnT&&rwT<T)shiftrw();
 	}
 }
