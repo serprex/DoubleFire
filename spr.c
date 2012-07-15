@@ -56,16 +56,32 @@ void glCirc(float xx,float yy,float r){
 	}
 	glEnd();
 }
-void glLine(float x1,float y1,float x2,float y2){
-	glBegin(GL_LINES);
-	glVertex2f(x1,y1);
-	glVertex2f(x2,y2);
+static void glLine1(float x1,float y1,float x2,float y2){
+	glBegin(GL_QUADS);
 	if(fabsf(x1-x2)<fabsf(y1-y2)){
-		glVertex2f(x1+.5,y1);
-		glVertex2f(x2+.5,y2);
+		glVertex2f(x1-.25,y1);
+		glVertex2f(x1+.25,y1);
 	}else{
-		glVertex2f(x1,y1+.5);
-		glVertex2f(x2,y2+.5);
+		glVertex2f(x1,y1-.25);
+		glVertex2f(x1,y1+.25);
+	}
+}
+static void glLine2(float x1,float y1,float x2,float y2){
+	if(fabsf(x1-x2)<fabsf(y1-y2)){
+		glVertex2f(x2-.25,y2);
+		glVertex2f(x2+.25,y2);
+	}else{
+		glVertex2f(x2,y2-.25);
+		glVertex2f(x2,y2+.25);
 	}
 	glEnd();
+}
+void glLine(float x1,float y1,float x2,float y2){
+	glLine1(x1,y1,x2,y2);
+	glLine2(x1,y1,x2,y2);
+}
+void glLineC(float x1,float y1,float x2,float y2,uint8_t*c){
+	glLine1(x1,y1,x2,y2);
+	glColor3ubv(c);
+	glLine2(x1,y1,x2,y2);
 }

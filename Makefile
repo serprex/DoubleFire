@@ -1,5 +1,5 @@
 CC=gcc -std=gnu11 -Ofast -g -pipe
-O=tgen.o spr.o lv.o df.o
+O=tgen.o spr.o lv.o net.o df.o
 all: ${O}
 	${CC} ${O} -o DoubleFire!! -lglfw -lGL -lm
 clean:

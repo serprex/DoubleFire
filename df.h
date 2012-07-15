@@ -4,17 +4,11 @@
 #include <math.h>
 #include <string.h>
 #include <GL/glfw.h>
-#include <errno.h>
-#include <sys/unistd.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/poll.h>
-#include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <sys/ioctl.h>
+#include <assert.h>
 #include "tgen.h"
 #include "lv.h"
 #include "spr.h"
+#include "net.h"
 #define case(x) break;case x:;
 #define else(x) else if(x)
 #define sqr(x) ({__typeof__(x) _x=(x);_x*_x;})

@@ -11,26 +11,17 @@ int crw=-1,rwp,rwT;
 #define getA(x) (!!((x)&8))
 #define getS(x) (!!((x)&16))
 #define getW(x) (!!((x)&32))
-int udp,welt;
+int welt;
 uint16_t T,MT,mnT,mxT;
 static uint8_t rcol[3],wellc;
-static const uint8_t col[]={255,0,0,255,255,255,95,95,159,255,0,0,0},
-	*red=col,*blu=col+1,*wht=col+3,*shr=col+5,*shb=col+7,*blk=col+10;
+static const uint8_t col[]={255,0,0,255,255,255,95,95,159,255,0,0,0};
+static colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
 void rndcol(){
 	glColor3ubv(rcol);
 }
 float rnorm(float a){
 	a=fmodf(a,M_PI*2);
 	return a>M_PI?a-M_PI*2:a;
-}
-int any(int s){
-	struct pollfd pfd={.fd=s,.events=POLLIN};
-	return poll(&pfd,1,0);
-}
-int readch(int s){
-	uint8_t c;
-	ssize_t a=read(s,&c,1);
-	return a?c:-1;
 }
 typedef struct{
 	uint16_t p;
@@ -50,7 +41,7 @@ typedef enum{
 	ECAN=32,ETAR,EB1,EB2,EROT
 }oid;
 static void pushrw(){
-	/*int shift=min(mnT,T)-rwT;
+	int shift=min(mnT,T)-rwT;
 	if(shift>0){
 		printf("<<%d %d %d",shift,rwp,rwT);
 		crw-=shift;
@@ -58,7 +49,7 @@ static void pushrw(){
 		for(int i=0;i<shift;i++)
 			free(rw[i].p);
 		memmove(rw,rw+shift,sizeof(*rw)*(rwp-=shift));
-	}*/
+	}
 	crw++;
 	printf(">>%d\n",crw);
 	if(crw==rwp){
@@ -68,8 +59,8 @@ static void pushrw(){
 		rw[crw].n=0;
 	}
 }
-#define w(x) static void w##x(uint##x##_t a){fprintf(stderr,"rw %p",rw);rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);fprintf(stderr," %p\n",rw);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
-#define wt(t) static void w##t(t a){fprintf(stderr,"rw %p",rw);rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));fprintf(stderr," %p\n",rw);*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);return*(t*)(rw[crw].p+rw[crw].n);}
+#define w(x) static void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
+#define wt(t) static void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);assert(rw[crw].n>=0);return*(t*)(rw[crw].p+rw[crw].n);}
 w(8)
 w(16)
 w(32)
@@ -216,12 +207,10 @@ void erotxy(obje*e,float x,float y,float m){
 	rrotxy(&e->d,e->x,e->y,x,y,m);
 }
 void stepBack(int n){
-	printf("sb %d %d\n",n,crw);
+	printf("sb %d %d",n,crw);
 	for(;;){
 		while(rw[crw].n){
-			printf("rwcrwn %d\n",rw[crw].n);
 			uint8_t a=r8();
-			printf("\ta:%d %d\n",a,rw[crw].n);
 			switch(a){
 			case(2 ... 3)Px[a-2]=rfloat();
 			case(4 ... 5)Py[a-4]=rfloat();
@@ -249,7 +238,6 @@ void stepBack(int n){
 			case(16)Pe--;
 			case(17)
 				Btop=B+r16();
-				printf("\tM17 %d\n",Btop-B);
 				for(bxy*b=Btop;b>=B;b--)
 					*b=rbxy();
 			case 18:
@@ -350,26 +338,11 @@ int main(int argc,char**argv){
 	glTexImage2D(GL_TEXTURE_2D,0,SF,SW,SH,0,SF,GL_UNSIGNED_BYTE,S);
 	genL1();
 	Pt=atoi(argv[1]);
-	udp=socket(AF_INET,SOCK_DGRAM,0);
-	struct sockaddr_in udpip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=2000+Pt};
-	if(bind(udp,(struct sockaddr*)&udpip,sizeof(udpip))==-1){
-		fprintf(stderr,"u%d\n",errno);
-		return 1;
-	}
-	if(argc>2){
-		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=2000+!Pt};
-		inet_aton(argv[2],&ip.sin_addr);
-		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
-	}else{
-		struct sockaddr_in ip;
-		socklen_t sip=sizeof(ip);
-		recvfrom(udp,0,0,0,(struct sockaddr*)&ip,&sip);
-		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
-	}
+	netinit(argc>2,argv[2]);
 	for(;;){
-		write(udp,0,0);
-		if(any(udp)){
-			read(udp,0,0);
+		nsend(0,0);
+		if(any()){
+			nrecv(0,0);
 			break;
 		}
 		glfwPollEvents();
@@ -422,7 +395,7 @@ int main(int argc,char**argv){
 			glfwPollEvents();
 			if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){
 				uint8_t a=0;
-				write(udp,&a,1);
+				nsend(&a,1);
 				return 0;
 			}
 			Pc[T][Pt]=glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;
@@ -434,7 +407,7 @@ int main(int argc,char**argv){
 				len+=2;
 				*(uint16_t*)(pcm+3)=mnT;
 			}
-			write(udp,pcm,len);
+			nsend(pcm,len);
 		}
 		if(!(Pc[T][!Pt]&128)){
 			int ot=T;
@@ -637,15 +610,11 @@ int main(int argc,char**argv){
 				w8(31);
 				e->y-=e->y>192?2:0;
 				if(T==MT){
-					glBegin(GL_LINES);
 					for(double a=0;a<M_PI;a+=M_PI/48){
 						double aa=a+T/256.;
 						glColor3ub(rand(),rand(),rand());
-						glVertex2f(e->x+cos(aa)*r,e->y+sin(aa)*r);
-						glColor3ubv(red+!(e->h&8));
-						glVertex2f(e->x-cos(aa)*r,e->y-sin(aa)*r);
+						glLineC(e->x+cos(aa)*r,e->y+sin(aa)*r,e->x-cos(aa)*r,e->y-sin(aa)*r,red+!(e->h&8));
 					}
-					glEnd();
 				}
 				mkbxy(e->c,e->x,e->y,Px[0],Py[0],4);
 				mkbxy(e->c+1,e->x,e->y,Px[1],Py[1],4);
@@ -779,11 +748,11 @@ int main(int argc,char**argv){
 			MT++;
 		}
 		T++;
-		while(any(udp)){
+		while(any()){
 			uint8_t ubu[5],*up=ubu+2;
-			int len=read(udp,ubu,5);
+			int len=nrecv(ubu,5);
 			if(!len){
-				if(++welt&1)write(udp,0,0);
+				if(++welt&1)nsend(0,0);
 			}else(len==1){
 				return 0;
 			}else(len>=3){
@@ -795,7 +764,7 @@ int main(int argc,char**argv){
 						uint8_t pcm[3];
 						*(uint16_t*)pcm=rt;
 						pcm[2]=Pc[rt][Pt];
-						write(udp,pcm,3);
+						nsend(pcm,3);
 					}
 					Pc[mt][!Pt]=*up|128;
 					if(mt<T)stepBack(T-mt);
