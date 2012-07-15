@@ -13,12 +13,8 @@ int crw=-1,rwp,rwT;
 #define getW(x) (!!((x)&32))
 int welt;
 uint16_t T,MT,mnT,mxT;
-static uint8_t rcol[3],wellc;
 static const uint8_t col[]={255,0,0,255,255,255,95,95,159,255,0,0,0};
 static colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
-void rndcol(){
-	glColor3ubv(rcol);
-}
 float rnorm(float a){
 	a=fmodf(a,M_PI*2);
 	return a>M_PI?a-M_PI*2:a;
@@ -151,13 +147,8 @@ void mkrot(uint8_t t,float x,float y,float d,float v){
 	e->yd=-sin(d)*v;
 }
 void xLz(int c,float x,float y,float d){
-	if(T==MT){
-		glBegin(GL_TRIANGLES);
-		glVertex2f(x,y);
-		glVertex2f(x+cos(d+M_PI/64)*c,y-sin(d+M_PI/64)*c);
-		glVertex2f(x+cos(d-M_PI/64)*c,y-sin(d-M_PI/64)*c);
-		glEnd();
-	}
+	if(T==MT)
+		glTriangle(x,y,x+cos(d+M_PI/64)*c,y-sin(d+M_PI/64)*c,x+cos(d-M_PI/64)*c,y-sin(d-M_PI/64)*c);
 	for(int i=0;i<2;i++)
 		if(dst(x,y,Px[i],Py[i])<c&&fabsf(rnorm(d+dir(x,y,Px[i],Py[i])))<M_PI/64)Ph[i]--;
 }
@@ -316,48 +307,25 @@ void stepBack(int n){
 		}
 	}
 }
-GLuint Stx;
-void notex(){
-	glBindTexture(GL_TEXTURE_2D,0);
-}
-void retex(){
-	glBindTexture(GL_TEXTURE_2D,Stx);
-}
 int main(int argc,char**argv){
-	glfwInit();
-	glfwDisable(GLFW_AUTO_POLL_EVENTS);
-	glfwOpenWindow(320,512,0,0,0,0,0,0,GLFW_WINDOW);
-	glOrtho(0,160,256,0,1,-1);
-	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
-	glGenTextures(1,&Stx);
-	glBindTexture(GL_TEXTURE_2D,Stx);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D,0,SF,SW,SH,0,SF,GL_UNSIGNED_BYTE,S);
+	sprInit();
 	genL1();
 	Pt=atoi(argv[1]);
-	netinit(argc>2,argv[2]);
+	netinit(argv[2]);
 	for(;;){
 		nsend(0,0);
 		if(any()){
 			nrecv(0,0);
 			break;
 		}
-		glfwPollEvents();
-		if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED))return 0;
-		glColor3ub(rand(),rand(),rand());
+		sprInput();
+		sprBeginFrame();
 		glRecti(0,0,320,512);
-		glfwSwapBuffers();
-		glfwSleep(1./10);
+		sprEndFrame();
 	}
-	glfwSetTime(0);
 	for(;;){
 		pushrw();
-		for(int i=0;i<3;i++)
-			rcol[i]=rand();
-		glClear(GL_COLOR_BUFFER_BIT);
+		sprBeginFrame();
 		if(Pe<0){
 			wfloat(Px[0]);
 			w8(2);
@@ -392,13 +360,7 @@ int main(int argc,char**argv){
 		}
 		if(T==MT){
 			printf("--%d\n",T);
-			glfwPollEvents();
-			if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){
-				uint8_t a=0;
-				nsend(&a,1);
-				return 0;
-			}
-			Pc[T][Pt]=glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;
+			Pc[T][Pt]=sprInput();
 			int len=3;
 			uint8_t pcm[5];
 			*(uint16_t*)pcm=T;
@@ -494,8 +456,8 @@ int main(int argc,char**argv){
 		}
 		if(T==MT){
 			notex();
-			glDisable(GL_BLEND);
-			glColor3ubv(wht);
+			disableBlend();
+			glColor(wht);
 		}
 		if(PBtop>=PB)w8(14);
 		for(bxy*b=PB;b<=PBtop;b++){
@@ -507,9 +469,9 @@ int main(int argc,char**argv){
 				w8(20);
 				*b--=*PBtop--;
 			}else(T==MT){
-				glColor3ubv(red+b->p);
+				glColor(red+b->p);
 				glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
-				glColor3ubv(b->p?wht:blk);
+				glColor(b->p?wht:blk);
 				glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
 			}
 		}
@@ -520,15 +482,11 @@ int main(int argc,char**argv){
 		if(T==MT)rndcol();
 		if(Btop>=B)w8(25);
 		for(bxy*b=B;b<=Btop;b++){
-			if(T==MT){
-				glBegin(GL_LINES);
-				glVertex2f(b->x,b->y);
-			}
+			float bx=b->x,by=b->y;
 			b->x+=b->xd;
 			b->y+=b->yd;
 			if(T==MT){
-				glVertex2f(b->x,b->y);
-				glEnd();
+				glLine(bx,by,b->x,b->y);
 				glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
 			}
 			if(b->y<0||b->x<0||b->x>128||b->y>256)goto killb;
@@ -559,9 +517,9 @@ int main(int argc,char**argv){
 			case(ECAN)
 				if(T==MT){
 					float r=min(T-e->c,e->h);
-					glColor3ubv(wht);
+					glColor(wht);
 					glLine(e->x,e->y,e->x+cos(e->d)*r*2,e->y-sin(e->d)*r*2);
-					glColor3ubv(red+et);
+					glColor(red+et);
 					glCirc(e->x,e->y,r);
 				}
 				e->x+=e->xd;
@@ -578,11 +536,11 @@ int main(int argc,char**argv){
 			case(ETAR)
 				r=min(T-e->c,abs(e->h));
 				if(T==MT){
-					glColor3ubv(wht);
+					glColor(wht);
 					glCirc(e->x,e->y,r);
 					rndcol();
 					glCirc(e->x,e->y,min(r,24));
-					glColor3ubv(wht);
+					glColor(wht);
 					glCirc(e->x,e->y,min(r,16));
 					rndcol();
 					glCirc(e->x,e->y,min(r,8));
@@ -612,7 +570,7 @@ int main(int argc,char**argv){
 				if(T==MT){
 					for(double a=0;a<M_PI;a+=M_PI/48){
 						double aa=a+T/256.;
-						glColor3ub(rand(),rand(),rand());
+						rndrndcol();
 						glLineC(e->x+cos(aa)*r,e->y+sin(aa)*r,e->x-cos(aa)*r,e->y-sin(aa)*r,red+!(e->h&8));
 					}
 				}
@@ -647,7 +605,7 @@ int main(int argc,char**argv){
 							if(y>0)e->a[xy-4]^=1;
 						}
 						if(T==MT){
-							glColor3ubv(red+e->a[xy]);
+							glColor(red+e->a[xy]);
 							glCirc(xx,yy,e->a[18]/4-e->a[19]/2);
 						}
 					}
@@ -679,7 +637,7 @@ int main(int argc,char**argv){
 				if(T==MT){
 					rndcol();
 					glCirc(e->x,e->y,e->h);
-					glColor3ubv(wht);
+					glColor(wht);
 					glLine(e->x,e->y,e->x+cos(e->d)*32,e->y-sin(e->d)*32);
 					glLine(e->x,e->y,e->x+cos(e->d+M_PI*2/3)*32,e->y-sin(e->d+M_PI*2/3)*32);
 					glLine(e->x,e->y,e->x+cos(e->d+M_PI*4/3)*32,e->y-sin(e->d+M_PI*4/3)*32);
@@ -720,31 +678,19 @@ int main(int argc,char**argv){
 		}
 		if(T==MT){
 			if(Bor){
-				glColor3ubv(wht);
+				glColor(wht);
 				glCirc(Box,Boy,Bor);
 			}
 			rndcol();
 			glRecti(128,0,136,Pe*2);
 			glRecti(136,64,144,64+T-mnT);
 			glRecti(144,64,152,64+T-mxT);
-			glEnable(GL_BLEND);
-			if(Lzo){
-				glBegin(GL_QUAD_STRIP);
-				for(int i=0;i<32;i++){
-					glColor3ub(255-i*8,255-i*8,255-i*8);
-					glVertex2f(Lzr[i][0],0);
-					glVertex2fv(Lzr[i]);
-				}
-				glEnd();
-			}
+			enableBlend();
+			if(Lzo)glLzr(Lzr);
 			retex();
 			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&7)>3,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
-			glfwSwapBuffers();
-			double gT=1./30-glfwGetTime();
-			if(gT>0&&T>=mxT)glfwSleep(gT);
-			else printf("sleep %f %d %d\n",gT,T,mxT);
-			glfwSetTime(0);
+			sprEndFrame();
 			MT++;
 		}
 		T++;

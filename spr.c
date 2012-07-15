@@ -1,8 +1,21 @@
 #include "df.h"
-struct spr spr[LSPR]={
+#include "tgen.h"
+#include <GL/glfw.h>
+struct spr{
+	int x,y,w,h;
+};
+static struct spr spr[LSPR]={
 	{0,0,7,8},
 	{0,8,7,8},
 };
+static uint8_t rcol[3];
+static GLuint Stx;
+void notex(){
+	glBindTexture(GL_TEXTURE_2D,0);
+}
+void retex(){
+	glBindTexture(GL_TEXTURE_2D,Stx);
+}
 void drawRect_(int x,int y,int w,int h,float tx,float ty,float tw,float th){
 	glTexCoord2f(tx,ty);
 	glVertex2i(x,y);
@@ -80,8 +93,74 @@ void glLine(float x1,float y1,float x2,float y2){
 	glLine1(x1,y1,x2,y2);
 	glLine2(x1,y1,x2,y2);
 }
-void glLineC(float x1,float y1,float x2,float y2,uint8_t*c){
+void glLineC(float x1,float y1,float x2,float y2,colt c){
 	glLine1(x1,y1,x2,y2);
-	glColor3ubv(c);
+	glColor(c);
 	glLine2(x1,y1,x2,y2);
+}
+void glTriangle(float x1,float y1,float x2,float y2,float x3,float y3){
+	glBegin(GL_TRIANGLES);
+	glVertex2f(x1,y1);
+	glVertex2f(x2,y2);
+	glVertex2f(x3,y3);
+	glEnd();
+}
+void glLzr(float lzr[32][2]){
+	glBegin(GL_QUAD_STRIP);
+	for(int i=0;i<32;i++){
+		glColor3ub(255-i*8,255-i*8,255-i*8);
+		glVertex2f(lzr[i][0],0);
+		glVertex2fv(lzr[i]);
+	}
+	glEnd();
+}
+void glColor(colt c){
+	glColor3ubv((const GLubyte*)c);
+}
+void rndcol(){
+	glColor3ubv(rcol);
+}
+void rndrndcol(){
+	glColor3ub(rand(),rand(),rand());
+}
+void enableBlend(){
+	glEnable(GL_BLEND);
+}
+void disableBlend(){
+	glDisable(GL_BLEND);
+}
+void sprInit(){
+	glfwInit();
+	glfwDisable(GLFW_AUTO_POLL_EVENTS);
+	glfwOpenWindow(320,512,0,0,0,0,0,0,GLFW_WINDOW);
+	glOrtho(0,160,256,0,1,-1);
+	glEnable(GL_TEXTURE_2D);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
+	glGenTextures(1,&Stx);
+	glBindTexture(GL_TEXTURE_2D,Stx);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D,0,SF,SW,SH,0,SF,GL_UNSIGNED_BYTE,S);
+}
+void sprBeginFrame(){
+	for(int i=0;i<3;i++)
+		rcol[i]=rand();
+	glClear(GL_COLOR_BUFFER_BIT);
+}
+void sprEndFrame(){
+	glfwSwapBuffers();
+	double gT=1./30-glfwGetTime();
+	if(gT>0&&T>=mxT)glfwSleep(gT);
+	else printf("sleep %f %d %d\n",gT,T,mxT);
+	glfwSetTime(0);
+}
+int sprInput(){
+	glfwPollEvents();
+	if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){
+		uint8_t a=0;
+		nsend(&a,1);
+		exit(0);
+	}
+	return glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;
 }
