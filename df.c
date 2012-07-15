@@ -145,7 +145,7 @@ void mkb1(){
 }
 void mkb2(){
 	obje*e=mke(EB2);
-	memset(e->a+1,0,18);
+	memset(e->a+1,0,19);
 }
 void mkrot(uint8_t t,float x,float y,float d,float v){
 	obje*e=mke(t);
@@ -181,7 +181,7 @@ int rinpb(float x,float y,int r,int p){
 	return n;
 }
 int rinlz(float x,float y,int r){
-	return Lzo&&y<=Py[1]&&x>=Px[1]-r&&x<=Px[1]+r;
+	return Lzo&&x>=Px[1]-r&&x<=Px[1]+r&&(y<=Py[1]||dst2(x,y,Px[1],Py[1])<=sqr(r));
 }
 int rinbo(float x,float y,int r){
 	return Bor&&dst2(x,y,Box,Boy)<=sqr(r+Bor);
@@ -243,9 +243,11 @@ void stepBack(int n){
 			case(15)Pi++;
 			case(16)Pe--;
 			case(17)
-				Btop=B+r16();
 				Pe+=48;
 				Pi=0;
+				Btop=B+r16();
+				for(bxy*b=Btop;b>=B;b--)
+					*b=rbxy();
 			case(18)Pe++;
 			case(19)PBtop--;
 			case(20){
@@ -422,7 +424,7 @@ int main(int argc,char**argv){
 			uint8_t pcm[5];
 			*(uint16_t*)pcm=T;
 			pcm[2]=Pc[T][Pt];
-			if(mnT+12<T){
+			if(mxT-mnT>4){
 				len+=2;
 				*(uint16_t*)(pcm+3)=mnT;
 			}
@@ -436,11 +438,7 @@ int main(int argc,char**argv){
 			}
 		}
 		for(int i=0;i<2;i++){
-			float Pxx=getD(Pc[T][i])-getA(Pc[T][i]),Pyy=getS(Pc[T][i])-getW(Pc[T][i]);
-			if(i){
-				Pxx*=1.5;
-				Pyy*=1.5;
-			}
+			float Pxx=(getD(Pc[T][i])-getA(Pc[T][i]))*1.5,Pyy=(getS(Pc[T][i])-getW(Pc[T][i]))*1.5;
 			if(Pxx&&Pyy){
 				Pxx*=M_SQRT2;
 				Pyy*=M_SQRT2;
@@ -529,7 +527,10 @@ int main(int argc,char**argv){
 				w8(b-PB);
 				w8(20);
 				*b--=*PBtop--;
-			}else(T==MT)glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+			}else(T==MT){
+				glColor3ubv(red+b->p);
+				glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+			}
 		}
 		Ph[0]=2;
 		Ph[1]=2-Lzo;
@@ -729,9 +730,11 @@ int main(int argc,char**argv){
 					w8(16);
 					Pe++;
 				}else(Ph[i]<1){
+					for(bxy*b=B;b<=Btop;b++)
+						wbxy(*b);
 					w16(Btop-B);
 					w8(17);
-					Btop=B;
+					Btop=B-1;
 					Pe-=48;
 					Pi=96;
 				}
@@ -760,8 +763,8 @@ int main(int argc,char**argv){
 			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
 			glfwSwapBuffers();
 			double gT=1./30-glfwGetTime();
-			if(gT>0)glfwSleep(gT);
-			else printf("%f\n",gT);
+			if(gT>0&&T>=mxT)glfwSleep(gT);
+			else printf("sleep %f %d %d\n",gT,T,mxT);
 			glfwSetTime(0);
 			MT++;
 		}
@@ -791,6 +794,6 @@ int main(int argc,char**argv){
 				}
 			}
 		}
-		while(rwp&&rwT<mnT&&rwT<T)shiftrw();
+		while(crw!=-1&&rwT<mnT&&rwT<T)shiftrw();
 	}
 }
