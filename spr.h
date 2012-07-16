@@ -12,7 +12,7 @@ void glTriangle(float,float,float,float,float,float);
 void glLzr(float lzr[32][2]);
 void sprInit();
 void sprBeginFrame();
-void sprEndFrame();
+void sprEndFrame(int fskip);
 int sprInput();
 void glColor(colt);
 void rndcol();

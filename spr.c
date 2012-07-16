@@ -41,16 +41,9 @@ void drawSpr(sprid s,int x,int y,int f,const uint8_t*c){
 	glColor3ubv(c);
 	drawSpr_(s,x,y,f*2,0);
 }
-static void dVine(float x,float y1,float y2){
-	glVertex2f(x,y1);
-	glVertex2f(x,y2);
-	glVertex2f(x+.5,y1);
-	glVertex2f(x+.5,y2);
-}
 void glCirc(float xx,float yy,float r){
 	float f=1-r,fx=1,fy=r*2,x=0,y=r;
-	glBegin(GL_LINES);
-	dVine(xx,yy+r,yy-r);
+	glBegin(GL_QUADS);
 	while(x<y)
 	{
 		if(f>=0)
@@ -62,30 +55,34 @@ void glCirc(float xx,float yy,float r){
 		x++;
 		fx+=2;
 		f+=fx;
-		dVine(xx+x,yy+y,yy-y);
-		dVine(xx-x,yy+y,yy-y);
-		dVine(xx+y,yy+x,yy-x);
-		dVine(xx-y,yy+x,yy-x);
+		glVertex2f(xx+x,yy+y);
+		glVertex2f(xx-x,yy+y);
+		glVertex2f(xx-x,yy-y);
+		glVertex2f(xx+x,yy-y);
+		glVertex2f(xx+y,yy+x);
+		glVertex2f(xx-y,yy+x);
+		glVertex2f(xx-y,yy-x);
+		glVertex2f(xx+y,yy-x);
 	}
 	glEnd();
 }
 static void glLine1(float x1,float y1,float x2,float y2){
 	glBegin(GL_QUADS);
 	if(fabsf(x1-x2)<fabsf(y1-y2)){
-		glVertex2f(x1-.25,y1);
-		glVertex2f(x1+.25,y1);
+		glVertex2f(x1-.5,y1);
+		glVertex2f(x1+.5,y1);
 	}else{
-		glVertex2f(x1,y1-.25);
-		glVertex2f(x1,y1+.25);
+		glVertex2f(x1,y1-.5);
+		glVertex2f(x1,y1+.5);
 	}
 }
 static void glLine2(float x1,float y1,float x2,float y2){
 	if(fabsf(x1-x2)<fabsf(y1-y2)){
-		glVertex2f(x2-.25,y2);
-		glVertex2f(x2+.25,y2);
+		glVertex2f(x2-.5,y2);
+		glVertex2f(x2+.5,y2);
 	}else{
-		glVertex2f(x2,y2-.25);
-		glVertex2f(x2,y2+.25);
+		glVertex2f(x2,y2-.5);
+		glVertex2f(x2,y2+.5);
 	}
 	glEnd();
 }
@@ -136,7 +133,7 @@ void sprInit(){
 	glOrtho(0,160,256,0,1,-1);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_COLOR,GL_ONE_MINUS_SRC_COLOR);
+	glBlendFunc(GL_ONE,GL_ONE);
 	glGenTextures(1,&Stx);
 	glBindTexture(GL_TEXTURE_2D,Stx);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
@@ -148,11 +145,11 @@ void sprBeginFrame(){
 		rcol[i]=rand();
 	glClear(GL_COLOR_BUFFER_BIT);
 }
-void sprEndFrame(){
+void sprEndFrame(int fskip){
 	glfwSwapBuffers();
 	double gT=1./30-glfwGetTime();
-	if(gT>0&&T>=mxT)glfwSleep(gT);
-	else printf("sleep %f %d %d\n",gT,T,mxT);
+	if(gT>0&&!fskip)glfwSleep(gT);
+	else printf("sleep %f\n",gT);
 	glfwSetTime(0);
 }
 int sprInput(){

@@ -13,7 +13,7 @@ int crw=-1,rwp,rwT;
 #define getW(x) (!!((x)&32))
 int welt;
 uint16_t T,MT,mnT,mxT;
-static const uint8_t col[]={255,0,0,255,255,255,95,95,159,255,0,0,0};
+static const uint8_t col[]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 static colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
 float rnorm(float a){
 	a=fmodf(a,M_PI*2);
@@ -296,6 +296,10 @@ void stepBack(int n){
 			case(35 ... 36)E[r8()].a[a-17]--;
 			case(37)Bor=r8();
 			case(38)E[r8()].h++;
+			case(39)
+				memmove(Lzr,Lzr+1,248);
+				Lzr[31][1]=rfloat();
+				Lzr[31][0]=rfloat();
 			case(40)Pe++;
 			}
 		}
@@ -321,7 +325,7 @@ int main(int argc,char**argv){
 		sprInput();
 		sprBeginFrame();
 		glRecti(0,0,320,512);
-		sprEndFrame();
+		sprEndFrame(0);
 	}
 	for(;;){
 		pushrw();
@@ -370,6 +374,8 @@ int main(int argc,char**argv){
 				*(uint16_t*)(pcm+3)=mnT;
 			}
 			nsend(pcm,len);
+			notex();
+			disableBlend();
 		}
 		if(!(Pc[T][!Pt]&128)){
 			int ot=T;
@@ -450,14 +456,12 @@ int main(int argc,char**argv){
 			if(++Bor>24)Bor=0;
 		}
 		if(Lzo){
+			wfloat(Lzr[31][0]);
+			wfloat(Lzr[31][1]);
+			w8(39);
 			memmove(Lzr+1,Lzr,248);
 			Lzr[0][0]=Px[1]+(rand()%3);
 			Lzr[0][1]=Py[1]-3+(rand()&3);
-		}
-		if(T==MT){
-			notex();
-			disableBlend();
-			glColor(wht);
 		}
 		if(PBtop>=PB)w8(14);
 		for(bxy*b=PB;b<=PBtop;b++){
@@ -476,7 +480,7 @@ int main(int argc,char**argv){
 			}
 		}
 		Ph[0]=2;
-		Ph[1]=2-Lzo;
+		Ph[1]=2;
 		Php[0]=0;
 		Php[1]=0;
 		if(T==MT)rndcol();
@@ -660,6 +664,7 @@ int main(int argc,char**argv){
 			w8(15);
 			Pi--;
 		}else{
+			if(Lzo&&Ph[1]==1)Ph[1]=0;
 			for(int i=0;i<2;i++)
 				if(Ph[i]==1&&Pe<127){
 					w8(16);
@@ -690,7 +695,7 @@ int main(int argc,char**argv){
 			retex();
 			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&7)>3,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
-			sprEndFrame();
+			sprEndFrame(mxT>T);
 			MT++;
 		}
 		T++;
