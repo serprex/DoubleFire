@@ -3,16 +3,15 @@ typedef struct{
 	uint8_t*p;
 	int n;
 }frame;
-frame*rw;
-int crw=-1,rwp,rwT;
-#define getZ(x) (!!((x)&1))
-#define getX(x) (!!((x)&2))
-#define getD(x) (!!((x)&4))
-#define getA(x) (!!((x)&8))
-#define getS(x) (!!((x)&16))
-#define getW(x) (!!((x)&32))
-int welt;
-uint16_t T,MT,mnT,mxT;
+static frame*rw;
+static int crw=-1,rwp,rwT,welt,cpi=-2,piT,pip;
+#define gZ(x) (!!((x)&1))
+#define gX(x) (!!((x)&2))
+#define gD(x) (!!((x)&4))
+#define gA(x) (!!((x)&8))
+#define gS(x) (!!((x)&16))
+#define gW(x) (!!((x)&32))
+static uint16_t T,MT,mnT,mxT,moT;
 static const uint8_t col[]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 static colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
 float rnorm(float a){
@@ -29,32 +28,13 @@ typedef union{
 		uint8_t t;
 		int8_t h;
 		uint16_t c;
-		float x,y,d,xd,yd;
+		float x,y,xd,yd,d;
 	};
 }obje;
 typedef enum{
 	BMI,BEX,
 	ECAN=32,ETAR,EB1,EB2,EROT
 }oid;
-static void pushrw(){
-	int shift=min(mnT,T)-rwT;
-	if(shift>0){
-		printf("<<%d %d %d",shift,rwp,rwT);
-		crw-=shift;
-		rwT+=shift;
-		for(int i=0;i<shift;i++)
-			free(rw[i].p);
-		memmove(rw,rw+shift,sizeof(*rw)*(rwp-=shift));
-	}
-	crw++;
-	printf(">>%d\n",crw);
-	if(crw==rwp){
-		rw=realloc(rw,sizeof(*rw)*++rwp);
-		printf("rw%d %d %p\n",T,rwT,rw);
-		rw[crw].p=0;
-		rw[crw].n=0;
-	}
-}
 #define w(x) static void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
 #define wt(t) static void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);assert(rw[crw].n>=0);return*(t*)(rw[crw].p+rw[crw].n);}
 w(8)
@@ -69,12 +49,38 @@ obje E[64];
 obje*Etop=E-1;
 bxy PB[256];
 bxy*PBtop=PB-1;
-uint8_t Pc[65536][2],Pf[2],Pi,*L=Lv;
+uint8_t*pin,Pf[2],Pi,*L=Lv;
 int8_t Pe=127;
 int Pt,Ph[2];
 uint16_t Php[2];
 float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
+static void pushrw(){
+	int shift=min(mnT,T)-rwT;
+	if(shift>0){
+		printf("<<%d %d %d\n",shift,rwp,rwT);
+		crw-=shift;
+		rwT+=shift;
+		for(int i=0;i<shift;i++)
+			free(rw[i].p);
+		memmove(rw,rw+shift,sizeof(frame)*(rwp-=shift));
+	}
+	if(++crw==rwp){
+		rw=realloc(rw,sizeof(frame)*++rwp);
+		rw[crw].p=0;
+		rw[crw].n=0;
+	}
+	shift=(min(min(mnT,T),moT)-piT)*2;
+	if(shift>0){
+		cpi-=shift;
+		piT+=shift;
+		memmove(pin,pin+shift,pip-=shift);
+	}
+	if((cpi+=2)==pip){
+		pin=realloc(pin,pip+=2);
+		memset(pin+cpi,0,2);
+	}
+}
 void mkpb(uint8_t p,float x,float y,float xd,float yd){
 	w8(19);
 	bxy*b=++PBtop;
@@ -305,6 +311,7 @@ void stepBack(int n){
 		}
 		T--;
 		crw--;
+		cpi-=2;
 		if(!--n||crw==-1){
 			printf(":%d\n",crw);
 			return;
@@ -329,7 +336,7 @@ int main(int argc,char**argv){
 	}
 	for(;;){
 		pushrw();
-		sprBeginFrame();
+		if(T==MT)sprBeginFrame();
 		if(Pe<0){
 			wfloat(Px[0]);
 			w8(2);
@@ -364,11 +371,10 @@ int main(int argc,char**argv){
 		}
 		if(T==MT){
 			printf("--%d\n",T);
-			Pc[T][Pt]=sprInput();
 			int len=3;
 			uint8_t pcm[5];
 			*(uint16_t*)pcm=T;
-			pcm[2]=Pc[T][Pt];
+			pcm[2]=pin[cpi+Pt]=sprInput();
 			if(mxT-mnT>4){
 				len+=2;
 				*(uint16_t*)(pcm+3)=mnT;
@@ -377,15 +383,8 @@ int main(int argc,char**argv){
 			notex();
 			disableBlend();
 		}
-		if(!(Pc[T][!Pt]&128)){
-			int ot=T;
-			while(ot){
-				ot--;
-				if(Pc[ot][!Pt]&128)Pc[T][!Pt]=Pc[ot][!Pt]&127;
-			}
-		}
 		for(int i=0;i<2;i++){
-			float Pxx=(getD(Pc[T][i])-getA(Pc[T][i]))*1.5,Pyy=(getS(Pc[T][i])-getW(Pc[T][i]))*1.5;
+			float Pxx=(gD(pin[cpi+i])-gA(pin[cpi+i]))*1.5,Pyy=(gS(pin[cpi+i])-gW(pin[cpi+i]))*1.5;
 			if(Pxx&&Pyy){
 				Pxx*=M_SQRT2;
 				Pyy*=M_SQRT2;
@@ -417,7 +416,7 @@ int main(int argc,char**argv){
 					}
 				}
 			}
-			if(getZ(Pc[T][i])){
+			if(gZ(pin[cpi+i])){
 				if(!Pf[i]){
 					w8(10+i);
 					Pf[i]=1;
@@ -427,7 +426,7 @@ int main(int argc,char**argv){
 				w8(22+i);
 				Pf[i]=0;
 			}
-			if(getX(Pc[T][i])){
+			if(gX(pin[cpi+i])){
 				if(i){
 					if(!Lzo){
 						w8(32);
@@ -467,7 +466,7 @@ int main(int argc,char**argv){
 		for(bxy*b=PB;b<=PBtop;b++){
 			b->x+=b->xd;
 			b->y+=b->yd;
-			if(b->y<-1||b->x<-1||b->x>129||b->y>257){
+			if(b->y<0||b->x<0||b->x>128||b->y>256){
 				wbxy(*b);
 				w8(b-PB);
 				w8(20);
@@ -479,10 +478,8 @@ int main(int argc,char**argv){
 				glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
 			}
 		}
-		Ph[0]=2;
-		Ph[1]=2;
-		Php[0]=0;
-		Php[1]=0;
+		Ph[0]=Ph[1]=2;
+		Php[0]=Php[1]=0;
 		if(T==MT)rndcol();
 		if(Btop>=B)w8(25);
 		for(bxy*b=B;b<=Btop;b++){
@@ -530,7 +527,7 @@ int main(int argc,char**argv){
 				e->y+=e->yd;
 				erotxy(e,Px[et],Py[et],M_PI/16);
 				if(!(T-e->c&7)||!(T-e->c&3))
-					mkbd(e->c,e->x,e->y,6,e->d);
+					mkbd(e->c,e->x+cos(e->d)*r*2,e->y-sin(e->d)*r*2,6,e->d);
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 				else(e->h<4||rdmg(e->x,e->y,e->h*3/2,2)){
 					w8(e-E);
@@ -635,16 +632,14 @@ int main(int argc,char**argv){
 				e->x+=e->xd;
 				e->y+=e->yd;
 				e->d+=M_PI/(et?128:-128);
-				mkbd(e->c,e->x,e->y,8,e->d);
-				mkbd(e->c,e->x,e->y,8,e->d+M_PI*2/3);
-				mkbd(e->c,e->x,e->y,8,e->d+M_PI*4/3);
+				for(int i=0;i<3;i++)
+					mkbd(e->c,e->x+cos(e->d+i*M_PI*2/3)*32,e->y-sin(e->d+i*M_PI*2/3)*32,8,e->d+i*M_PI*2/3);
 				if(T==MT){
 					rndcol();
 					glCirc(e->x,e->y,e->h);
 					glColor(wht);
-					glLine(e->x,e->y,e->x+cos(e->d)*32,e->y-sin(e->d)*32);
-					glLine(e->x,e->y,e->x+cos(e->d+M_PI*2/3)*32,e->y-sin(e->d+M_PI*2/3)*32);
-					glLine(e->x,e->y,e->x+cos(e->d+M_PI*4/3)*32,e->y-sin(e->d+M_PI*4/3)*32);
+					for(int i=0;i<3;i++)
+						glLine(e->x+cos(e->d+i*M_PI*2/3)*(32-e->h*3),e->y-sin(e->d+i*M_PI*2/3)*(32-e->h*3),e->x+cos(e->d+i*M_PI*2/3)*32,e->y-sin(e->d+i*M_PI*2/3)*32);
 				}
 				if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 				else(e->h<8||rdmg(e->x,e->y,e->h*3/2,2)){
@@ -700,25 +695,39 @@ int main(int argc,char**argv){
 		}
 		T++;
 		while(any()){
-			uint8_t ubu[5],*up=ubu+2;
+			uint8_t ubu[6];
 			int len=nrecv(ubu,5);
+			uint8_t oin=ubu[2];
 			if(!len){
 				if(++welt&1)nsend(0,0);
 			}else(len==1){
 				return 0;
 			}else(len>=3){
 				uint16_t mt=*(uint16_t*)ubu;
-				printf("udp%d: %d %d\n",len,mt,*up);
-				if(!(Pc[mt][!Pt]&128)){
+				printf("udp%d: %d %d\n",len,mt,oin);
+				if((mt-piT)*2>=pip){
+					int hip=pip;
+					pin=realloc(pin,pip=(mt-piT+1)*2);
+					memset(pin+hip,oin,pip-hip);
+				}
+				if(!(pin[(mt-piT)*2+!Pt]&128)){
 					if(len==5){
 						uint16_t rt=*(uint16_t*)(ubu+3);
-						uint8_t pcm[3];
-						*(uint16_t*)pcm=rt;
-						pcm[2]=Pc[rt][Pt];
-						nsend(pcm,3);
+						if(rt>=moT){
+							moT=rt;
+							ubu[5]=pin[(rt-piT)*2+Pt];
+							printf("ubu5pin %d\n",(rt-piT)*2+Pt);
+							nsend(ubu+3,3);
+						}
 					}
-					Pc[mt][!Pt]=*up|128;
-					if(mt<T)stepBack(T-mt);
+					pin[(mt-piT)*2+!Pt]=oin|128;
+					if(mt<T){
+						for(int i=(1+mt-piT)*2+!Pt;i<pip;i+=2){
+							if(pin[i]&128)break;
+							pin[i]=oin;
+						}
+						stepBack(T-mt);
+					}
 					if(mt==mnT)mnT++;
 					if(mt>mxT)mxT=mt;
 				}
