@@ -102,12 +102,12 @@ void glTriangle(float x1,float y1,float x2,float y2,float x3,float y3){
 	glVertex2f(x3,y3);
 	glEnd();
 }
-void glLzr(float lzr[32][2]){
+void glLzr(){
 	glBegin(GL_QUAD_STRIP);
 	for(int i=0;i<32;i++){
 		glColor3ub(255-i*8,255-i*8,255-i*8);
-		glVertex2f(lzr[i][0],0);
-		glVertex2fv(lzr[i]);
+		glVertex2f(Lzr[i][0],0);
+		glVertex2fv(Lzr[i]);
 	}
 	glEnd();
 }

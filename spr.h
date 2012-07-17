@@ -1,5 +1,4 @@
 typedef enum{Ika,Kae,LSPR}sprid;
-typedef const uint8_t*const colt;
 void notex();
 void retex();
 void drawRect_(int x,int y,int w,int h,float tx,float ty,float tw,float th);
@@ -9,7 +8,7 @@ void glCirc(float x,float y,float r);
 void glLine(float x1,float y1,float x2,float y2);
 void glLineC(float x1,float y1,float x2,float y2,colt c);
 void glTriangle(float,float,float,float,float,float);
-void glLzr(float lzr[32][2]);
+void glLzr();
 void sprInit();
 void sprBeginFrame();
 void sprEndFrame(int fskip);

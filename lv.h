@@ -1,2 +1,3 @@
-extern unsigned char Lv[65536];
+extern uint8_t*Lp;
+void mke();
 void genL1();
