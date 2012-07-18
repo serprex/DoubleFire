@@ -145,11 +145,12 @@ void stepBack(int n){
 			case(35 ... 36)E[r8()].a[a-17]--;
 			case(37)Bor=r8();
 			case(38)E[r8()].h++;
-			case(39)
-				memmove(Lzr,Lzr+1,248);
-				Lzr[31][1]=rfloat();
-				Lzr[31][0]=rfloat();
 			case(40)Pe++;
+			case(41){
+				obje*e=E+r8();
+				e->y=rfloat();
+				e->x=rfloat();
+			}
 			}
 		}
 		T--;
@@ -164,8 +165,13 @@ void stepBack(int n){
 int main(int argc,char**argv){
 	sprInit();
 	genL1();
-	Pt=atoi(argv[1]);
-	netinit(argv[2]);
+	if(argc<2){
+		Pt=0;
+		netinit(0);
+	}else{
+		Pt=atoi(argv[1]);
+		netinit(argv[2]);
+	}
 	for(;;){
 		nsend(0,0);
 		if(any()){
@@ -174,11 +180,10 @@ int main(int argc,char**argv){
 		}
 		sprInput();
 		sprBeginFrame();
-		glRecti(0,0,320,512);
+		glRect(0,0,320,512);
 		sprEndFrame(0);
 	}
 	for(;;){
-		printf("LZO %d %d:%d %f %f\n",MT,T,Lzo,Lzr[0][0],Lzr[0][1]);
 		pushrw();
 		if(T==MT)sprBeginFrame();
 		if(Pe<0){
@@ -227,11 +232,12 @@ int main(int argc,char**argv){
 				w8(22+i);
 				if(Pf[i]<8)Pf[i]++;
 				else Pf[i]=8+(Pf[i]+1&7);
-				if(Pe&&!(Pf[i]&7)){
+				if(Pe&&(Pf[i]&3)==1){
 					w8(40);
 					Pe--;
 					if(i){
-						mkpb(1,Px[1],Py[1]-3,0,-3);
+						mkpb(1,Px[1]-2,Py[1]-4,0,-3);
+						mkpb(1,Px[1]+2,Py[1]-4,0,-3);
 					}else{
 						mkpb(0,Px[0],Py[0],0,4);
 						float xd=64-Px[0],yd=128-Py[0],xy=sqrt(xd*xd+yd*yd)?:1;
@@ -277,14 +283,6 @@ int main(int argc,char**argv){
 			w8(37);
 			if(++Bor>24)Bor=0;
 		}
-		if(Lzo){
-			wfloat(Lzr[31][0]);
-			wfloat(Lzr[31][1]);
-			w8(39);
-			memmove(Lzr+1,Lzr,248);
-			Lzr[0][0]=Px[1]+(rand()%3)-1;
-			Lzr[0][1]=Py[1]-3+(rand()&3);
-		}
 		if(PBtop>=PB)w8(14);
 		for(bxy*b=PB;b<=PBtop;b++){
 			b->x+=b->xd;
@@ -296,9 +294,9 @@ int main(int argc,char**argv){
 				*b--=*PBtop--;
 			}else(T==MT){
 				glColor(red+b->p);
-				glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+				glRect(b->x-1,b->y-1,b->x+1,b->y+1);
 				glColor(b->p?wht:blk);
-				glRectf(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
+				glRect(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
 			}
 		}
 		Ph[0]=Ph[1]=2;
@@ -332,14 +330,19 @@ int main(int argc,char**argv){
 				glCirc(Box,Boy,Bor);
 			}
 			rndcol();
-			glRecti(128,0,136,Pe*2);
-			glRecti(136,64,144,64+T-mnT);
-			glRecti(144,64,152,64+T-mxT);
+			glRect(128,0,136,Pe*2);
+			glRect(136,64,144,64+T-mnT);
+			glRect(144,64,152,64+T-mxT);
 			enableBlend();
-			if(Lzo)glLzr();
+			if(Lzo){
+				memmove(Lzr+1,Lzr,248);
+				Lzr[0][0]=Px[1]+(rand()%3)-1;
+				Lzr[0][1]=Py[1]-3+(rand()&3);
+				glLzr();
+			}
 			retex();
-			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&7)>3,shr);
-			drawSpr(Ika,Px[1]-3,Py[1]-4,Pf[1]>3,shb);
+			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&3)>1,shr);
+			drawSpr(Ika,Px[1]-3,Py[1]-4,(Pf[1]&3)>1,shb);
 			sprEndFrame(mxT>T);
 			MT++;
 		}

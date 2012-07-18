@@ -79,6 +79,9 @@ void erotxy(obje*e,float x,float y,float m){
 	w8(28);
 	rrotxy(&e->d,e->x,e->y,x,y,m);
 }
+int nearest(float x,float y){
+	return dst2(x,y,Px[0],Py[0])>dst2(x,y,Px[1],Py[1]);
+}
 void eloop(){
 	if(Btop>=B)w8(25);
 	for(bxy*b=B;b<=Btop;b++){
@@ -87,7 +90,7 @@ void eloop(){
 		b->y+=b->yd;
 		if(T==MT){
 			glLine(bx,by,b->x,b->y);
-			glRectf(b->x-1,b->y-1,b->x+1,b->y+1);
+			glRect(b->x-1,b->y-1,b->x+1,b->y+1);
 		}
 		if(b->y<0||b->x<0||b->x>128||b->y>256)goto killb;
 		for(int i=0;i<2;i++)
@@ -241,10 +244,35 @@ void eloop(){
 					glLine(e->x+cos(e->d+i*M_PI*2/3)*(32-e->h*3),e->y-sin(e->d+i*M_PI*2/3)*(32-e->h*3),e->x+cos(e->d+i*M_PI*2/3)*32,e->y-sin(e->d+i*M_PI*2/3)*32);
 			}
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
-			else(e->h<8||rdmg(e->x,e->y,e->h*3/2,2)){
+			else(e->h<8||rdmg(e->x,e->y,e->h,2)){
 				w8(e-E);
 				w8(38);
 				e->h--;
+			}
+		case(EDOG)
+			et=nearest(e->x,e->y);
+			if(dst2(e->x,e->y,Px[et],Py[et])<64){
+				Px[et]=e->x;
+				Py[et]=e->y;
+			}else{
+				erotxy(e,Px[et],Py[et],M_PI/32);
+				wfloat(e->x);
+				wfloat(e->y);
+				w8(e-E);
+				w8(41);
+				e->x+=cos(e->d)*e->xd;
+				e->y-=sin(e->d)*e->xd;
+				et=2;
+			}
+			if(T==MT){
+				glColor(et==2?wht:red+et);
+				glCirc(e->x,e->y,min(e->h,T-e->c));
+			}
+			if(rdmg(e->x,e->y,16,et)){
+				w8(e-E);
+				w8(38);
+				e->h--;
+				if(!e->h)goto kille;
 			}
 		}
 		if(0)kille:{

@@ -102,6 +102,9 @@ void glTriangle(float x1,float y1,float x2,float y2,float x3,float y3){
 	glVertex2f(x3,y3);
 	glEnd();
 }
+void glRect(float x1,float y1,float x2,float y2){
+	glRectf(x1,y1,x2,y2);
+}
 void glLzr(){
 	glBegin(GL_QUAD_STRIP);
 	for(int i=0;i<32;i++){

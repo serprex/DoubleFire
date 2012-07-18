@@ -18,17 +18,4 @@ void rndcol();
 void rndrndcol();
 void enableBlend();
 void disableBlend();
-void glRectf(float,float,float,float);
-void glRecti(int,int,int,int);
-void glVertex2f(float,float);
-void glVertex2fv(const float*);
-#define GL_POINTS 0
-#define GL_LINES 1
-#define GL_LINE_LOOP 2
-#define GL_LINE_STRIP 3
-#define GL_TRIANGLES 4
-#define GL_TRIANGLE_STRIP 5
-#define GL_TRIANGLE_FAN 6
-#define GL_QUADS 7
-#define GL_QUAD_STRIP 8
-#define GL_POLYGON 9
+void glRect(float,float,float,float);
