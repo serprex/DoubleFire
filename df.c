@@ -20,32 +20,6 @@ int Pt,Ph[2];
 uint16_t Php[2];
 float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
-static void pushrw(){
-	int shift=min(mnT,T)-rwT;
-	if(shift>0){
-		printf("<<%d %d %d\n",shift,rwp,rwT);
-		crw-=shift;
-		rwT+=shift;
-		for(int i=0;i<shift;i++)
-			free(rw[i].p);
-		memmove(rw,rw+shift,sizeof(frame)*(rwp-=shift));
-	}
-	if(++crw==rwp){
-		rw=realloc(rw,sizeof(frame)*++rwp);
-		rw[crw].p=0;
-		rw[crw].n=0;
-	}
-	shift=(min(min(mnT,T),moT)-piT)*2;
-	if(shift>0){
-		cpi-=shift;
-		piT+=shift;
-		memmove(pin,pin+shift,pip-=shift);
-	}
-	if((cpi+=2)==pip){
-		pin=realloc(pin,pip+=2);
-		memset(pin+cpi,0,2);
-	}
-}
 void stepBack(int n){
 	printf("sb %d %d",n,crw);
 	for(;;){
@@ -190,8 +164,31 @@ int main(int argc,char**argv){
 		retex();
 	}
 	for(;;){
-		pushrw();
-		if(T==MT)sprBeginFrame();
+		printf("-%d\n");
+		int shift=min(mnT,T)-rwT;
+		if(shift>0){
+			printf("<<%d %d %d\n",shift,rwp,rwT);
+			crw-=shift;
+			rwT+=shift;
+			for(int i=0;i<shift;i++)
+				free(rw[i].p);
+			memmove(rw,rw+shift,sizeof(frame)*(rwp-=shift));
+		}
+		if(++crw==rwp){
+			rw=realloc(rw,sizeof(frame)*++rwp);
+			rw[crw].p=0;
+			rw[crw].n=0;
+		}
+		shift=(min(min(mnT,T),moT)-piT)*2;
+		if(shift>0){
+			cpi-=shift;
+			piT+=shift;
+			memmove(pin,pin+shift,pip-=shift);
+		}
+		if((cpi+=2)==pip){
+			pin=realloc(pin,pip+=2);
+			memset(pin+cpi,0,2);
+		}
 		if(Pe<0){
 			wfloat(Px[0]);
 			w8(2);
@@ -200,11 +197,12 @@ int main(int argc,char**argv){
 			w8(Pe);
 			w8(6);
 			Px[0]=Px[1]=20;
-			Pe=0;
+			Pe=127;
 		}
 		mke();
 		if(T==MT){
-			printf("--%d\n",T);
+			printf("==%d\n",T);
+			sprBeginFrame();
 			if(isudp){
 				int len=3;
 				uint8_t pcm[5];
@@ -314,10 +312,13 @@ int main(int argc,char**argv){
 		Php[0]=Php[1]=0;
 		if(T==MT)rndcol();
 		eloop();
+		printf("Pi %d\n",Pi);
 		if(Pi){
+			printf("PI %d Pe",Pe);
 			w8(15);
 			Pi--;
 		}else{
+			printf("PH %d %d\n",Ph[0],Ph[1]);
 			if(Lzo&&Ph[1]==1)Ph[1]=0;
 			for(int i=0;i<2;i++)
 				if(Ph[i]==1&&Pe<127){
@@ -332,7 +333,8 @@ int main(int argc,char**argv){
 						Btop=B-1;
 					}else w8(18);
 					Pe-=48;
-					Pi=96;
+					Pi=64;
+					break;
 				}
 		}
 		if(T==MT){
@@ -358,7 +360,6 @@ int main(int argc,char**argv){
 			MT++;
 		}
 		T++;
-		printf("%d while any\n",T);
 		while(any()){
 			if(isudp){
 				uint8_t ubu[6];

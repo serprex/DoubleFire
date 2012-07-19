@@ -95,10 +95,6 @@ void eloop(){
 		if(b->y<0||b->x<0||b->x>128||b->y>256)goto killb;
 		for(int i=0;i<2;i++)
 			if(btop(i,b)<256){
-				if(Pe<127){
-					w8(16);
-					Pe++;
-				}
 				if(Php[i]!=b->p){
 					Ph[i]--;
 					Php[i]=b->p;
