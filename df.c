@@ -165,23 +165,29 @@ void stepBack(int n){
 int main(int argc,char**argv){
 	sprInit();
 	genL1();
+	int isudp;
 	if(argc<2){
 		Pt=0;
-		netinit(0);
+		isudp=netinit(0);
 	}else{
 		Pt=atoi(argv[1]);
-		netinit(argv[2]);
+		isudp=netinit(argv[2]);
 	}
-	for(;;){
-		nsend(0,0);
-		if(any()){
-			nrecv(0,0);
-			break;
+	if(isudp){
+		notex();
+		for(;;){
+			nsend(0,0);
+			if(any()){
+				nrecv(0,0);
+				break;
+			}
+			sprInput();
+			sprBeginFrame();
+			rndcol();
+			glRect(0,0,160,256);
+			sprEndFrame(0);
 		}
-		sprInput();
-		sprBeginFrame();
-		glRect(0,0,320,512);
-		sprEndFrame(0);
+		retex();
 	}
 	for(;;){
 		pushrw();
@@ -199,15 +205,20 @@ int main(int argc,char**argv){
 		mke();
 		if(T==MT){
 			printf("--%d\n",T);
-			int len=3;
-			uint8_t pcm[5];
-			*(uint16_t*)pcm=T;
-			pcm[2]=pin[cpi+Pt]=sprInput();
-			if(mxT-mnT>4){
-				len+=2;
-				*(uint16_t*)(pcm+3)=mnT;
+			if(isudp){
+				int len=3;
+				uint8_t pcm[5];
+				*(uint16_t*)pcm=T;
+				pcm[2]=pin[cpi+Pt]=sprInput();
+				if(mxT-mnT>4){
+					len+=2;
+					*(uint16_t*)(pcm+3)=mnT;
+				}
+				nsend(pcm,len);
+			}else{
+				pin[cpi+Pt]=sprInput();
+				nsend(pin+cpi+Pt,1);
 			}
-			nsend(pcm,len);
 			notex();
 			disableBlend();
 		}
@@ -347,43 +358,67 @@ int main(int argc,char**argv){
 			MT++;
 		}
 		T++;
+		printf("%d while any\n",T);
 		while(any()){
-			uint8_t ubu[6];
-			int len=nrecv(ubu,5);
-			uint8_t oin=ubu[2];
-			if(!len){
-				if(++welt&1)nsend(0,0);
-			}else(len==1){
-				return 0;
-			}else(len>=3){
-				uint16_t mt=*(uint16_t*)ubu;
-				printf("udp%d: %d %d\n",len,mt,oin);
-				if((mt-piT)*2>=pip){
+			if(isudp){
+				uint8_t ubu[6];
+				int len=nrecv(ubu,5);
+				uint8_t oin=ubu[2];
+				if(!len){
+					if(++welt&1)nsend(0,0);
+				}else(len==1){
+					return 0;
+				}else(len>=3){
+					uint16_t mt=*(uint16_t*)ubu;
+					printf("udp%d: %d %d\n",len,mt,oin);
+					if((mt-piT)*2>=pip){
+						int hip=pip;
+						pin=realloc(pin,pip=(mt-piT+1)*2);
+						memset(pin+hip,oin,pip-hip);
+					}
+					if(!(pin[(mt-piT)*2+!Pt]&128)){
+						if(len==5){
+							uint16_t rt=*(uint16_t*)(ubu+3);
+							if(rt>=moT){
+								moT=rt;
+								ubu[5]=pin[(rt-piT)*2+Pt];
+								printf("ubu5pin %d\n",(rt-piT)*2+Pt);
+								nsend(ubu+3,3);
+							}
+						}
+						pin[(mt-piT)*2+!Pt]=oin|128;
+						if(mt<T){
+							for(int i=(1+mt-piT)*2+!Pt;i<pip;i+=2){
+								if(pin[i]&128)break;
+								pin[i]=oin;
+							}
+							stepBack(T-mt);
+						}
+						if(mt==mnT)mnT++;
+						if(mt>mxT)mxT=mt;
+					}
+				}
+			}else{
+				uint8_t oin;
+				int len=nrecv(&oin,1);
+				if(len==-1)return 0;
+				if((mnT-piT)*2>=pip){
 					int hip=pip;
-					pin=realloc(pin,pip=(mt-piT+1)*2);
+					pin=realloc(pin,pip=(mnT-piT+1)*2);
 					memset(pin+hip,oin,pip-hip);
 				}
-				if(!(pin[(mt-piT)*2+!Pt]&128)){
-					if(len==5){
-						uint16_t rt=*(uint16_t*)(ubu+3);
-						if(rt>=moT){
-							moT=rt;
-							ubu[5]=pin[(rt-piT)*2+Pt];
-							printf("ubu5pin %d\n",(rt-piT)*2+Pt);
-							nsend(ubu+3,3);
-						}
-					}
-					pin[(mt-piT)*2+!Pt]=oin|128;
-					if(mt<T){
-						for(int i=(1+mt-piT)*2+!Pt;i<pip;i+=2){
+				if(pin[(mnT-piT)*2+!Pt]!=oin){
+					pin[(mnT-piT)*2+!Pt]=oin|128;
+					if(mnT<T){
+						for(int i=(1+mnT-piT)*2+!Pt;i<pip;i+=2){
 							if(pin[i]&128)break;
 							pin[i]=oin;
 						}
-						stepBack(T-mt);
+						stepBack(T-mnT);
 					}
-					if(mt==mnT)mnT++;
-					if(mt>mxT)mxT=mt;
-				}
+				}else pin[(mnT-piT)*2+!Pt]|=128;
+				mnT++;
+				mxT=mnT-1;
 			}
 		}
 	}

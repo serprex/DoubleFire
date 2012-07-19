@@ -1,10 +1,9 @@
 #include "df.h"
 #include "tgen.h"
 #include <GL/glfw.h>
-struct spr{
+static struct spr{
 	int x,y,w,h;
-};
-static struct spr spr[LSPR]={
+}spr[LSPR]={
 	{0,0,7,8},
 	{0,8,7,8},
 };

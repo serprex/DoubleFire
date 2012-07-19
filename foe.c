@@ -180,7 +180,7 @@ void eloop(){
 			mkbxy(e->c,e->x,e->y,Px[0],Py[0],4);
 			mkbxy(e->c+1,e->x,e->y,Px[1],Py[1],4);
 			mkbxy(e->c+2,e->x,e->y,Px[!(e->h&8)],Py[!(e->h&8)],1);
-			if(rdmg(e->x,e->y,e->h,!(e->h&8))){
+			if((e->h&7)!=7&&rdmg(e->x,e->y,e->h,!(e->h&8))){
 				w8(e->h);
 				w8(e-E);
 				w8(29);
