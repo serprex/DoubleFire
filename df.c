@@ -141,8 +141,46 @@ int main(int argc,char**argv){
 	genL1();
 	int isudp;
 	if(argc<2){
-		Pt=0;
-		isudp=netinit(0);
+		char ipstr[17],*ipstrp=ipstr,lch;
+		do{
+			int in=sprInput();
+			if(gA(in)){
+				Pt=0;
+			}else(gD(in)){
+				Pt=1;
+			}
+			char llch=lch;
+			if(sprKey(KEY_BACKSPACE)&&ipstrp>ipstr)
+				ipstrp--;
+			else(ipstrp-ipstr<17){
+				if(sprKey('T'))lch=*ipstrp++='t';
+				else(sprKey('.'))lch=*ipstrp++='.';
+				else{
+					for(int i='0';i<='9';i++)
+						if(sprKey(i)){
+							lch=*ipstrp++=i;
+							goto lchset;
+						}
+					lch=0;
+				}
+			}
+			lchset:if(lch&&llch==lch)ipstrp--;
+			sprBeginFrame();
+			notex();
+			rndcol();
+			glRect(0,0,160,256);
+			int x=0;
+			for(char*p=ipstr;p<ipstrp;p++){
+				rndrndcol();
+				tfChar(x,32,*p);
+				x+=6;
+			}
+			retex();
+			drawSpr(Pt?Ika:Kae,16,16,0,Pt?shb:shr);
+			sprEndFrame(1./20);
+		}while(!sprKey(KEY_ENTER));
+		*ipstrp=0;
+		isudp=netinit(ipstr);
 	}else{
 		Pt=atoi(argv[1]);
 		isudp=netinit(argv[2]);
@@ -159,7 +197,7 @@ int main(int argc,char**argv){
 			sprBeginFrame();
 			rndcol();
 			glRect(0,0,160,256);
-			sprEndFrame(0);
+			sprEndFrame(1./5);
 		}
 		retex();
 	}
@@ -356,7 +394,7 @@ int main(int argc,char**argv){
 			retex();
 			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&3)>1,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,(Pf[1]&3)>1,shb);
-			sprEndFrame(mxT>T);
+			sprEndFrame(mxT>T?0:1./30);
 			MT++;
 		}
 		T++;

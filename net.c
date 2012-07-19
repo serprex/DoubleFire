@@ -32,11 +32,11 @@ int netinit(char*ipstr){
     WSAStartup(MAKEWORD(2,2),&WsaData);
 	#endif
 	int type=SOCK_DGRAM;
-	printf("IP %p %s\n",ipstr,ipstr?:"");
 	if(ipstr&&*ipstr=='t'){
 		type=SOCK_STREAM;
 		if(!*++ipstr)ipstr=0;
 	}
+	if(ipstr&&!*ipstr)ipstr=0;
 	udp=socket(AF_INET,type,0);
 	struct sockaddr_in udpip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=htons(2000+!!ipstr)};
 	bind(udp,(struct sockaddr*)&udpip,sizeof(udpip));

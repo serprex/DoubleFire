@@ -1,6 +1,102 @@
 #include "df.h"
 #include "tgen.h"
 #include <GL/glfw.h>
+#define XXX 0
+#define XOX 1
+#define OOX 2
+#define XOO 3
+#define A(a,b,c,d,e) a|b<<2|c<<4|d<<6,e
+#define B(a,b,c,d,e) |a<<2|b<<4|c<<6,d|e<<2
+#define C(a,b,c,d,e) |a<<4|b<<6,c|d<<2|e<<4
+#define D(a,b,c,d,e) |a<<6,b|c<<2|d<<4|e<<6,
+static const uint8_t abc[]={
+	A(
+	XXX,
+	XOX,
+	XOX,
+	XOX,
+	XXX)
+	B(
+	OOX,
+	OOX,
+	OOX,
+	OOX,
+	OOX)
+	C(
+	XXX,
+	OOX,
+	XXX,
+	XOO,
+	XXX)
+	D(
+	XXX,
+	OOX,
+	XXX,
+	OOX,
+	XXX)
+	A(
+	XOX,
+	XOX,
+	XXX,
+	OOX,
+	OOX)
+	B(
+	XXX,
+	XOO,
+	XXX,
+	OOX,
+	XXX)
+	C(
+	XOO,
+	XOO,
+	XXX,
+	XOX,
+	XXX)
+	D(
+	XXX,
+	OOX,
+	OOX,
+	OOX,
+	OOX)
+	A(
+	XXX,
+	XOX,
+	XXX,
+	XOX,
+	XXX)
+	B(
+	XXX,
+	XOX,
+	XXX,
+	OOX,
+	OOX)
+	C(
+	XXX,
+	XXX,
+	XXX,
+	XXX,
+	XXX)
+	D(
+	OOX,
+	XOO,
+	XXX,
+	OOX,
+	XOO)
+};
+void tfChar(float x,float y,int c){
+	glBegin(GL_QUADS);
+	for(int j=0;j<5;j++)
+		for(int i=0;i<5;i++){
+			int bit=(c=='t'?110:c=='.'?100:(c-'0')*10)+j*2;
+			if((49727>>5*((abc[bit>>3]>>(bit&7))&3))&1<<i){
+				glVertex2f(x+i,y+j);
+				glVertex2f(x+i+1,y+j);
+				glVertex2f(x+i+1,y+j+1);
+				glVertex2f(x+i,y+j+1);
+			}
+		}
+	glEnd();
+}
 static struct spr{
 	int x,y,w,h;
 }spr[LSPR]={
@@ -147,13 +243,14 @@ void sprBeginFrame(){
 		rcol[i]=rand();
 	glClear(GL_COLOR_BUFFER_BIT);
 }
-void sprEndFrame(int fskip){
+void sprEndFrame(float fps){
 	glfwSwapBuffers();
-	double gT=1./30-glfwGetTime();
-	if(gT>0&&!fskip)glfwSleep(gT);
+	double gT=fps-glfwGetTime();
+	if(gT>0)glfwSleep(gT);
 	else printf("sleep %f\n",gT);
 	glfwSetTime(0);
 }
+int sprKey(int k){return glfwGetKey(k);}
 int sprInput(){
 	glfwPollEvents();
 	if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){

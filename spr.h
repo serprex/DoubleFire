@@ -11,7 +11,7 @@ void glTriangle(float,float,float,float,float,float);
 void glLzr();
 void sprInit();
 void sprBeginFrame();
-void sprEndFrame(int fskip);
+void sprEndFrame(float);
 int sprInput();
 void glColor(colt);
 void rndcol();
@@ -19,3 +19,7 @@ void rndrndcol();
 void enableBlend();
 void disableBlend();
 void glRect(float,float,float,float);
+int sprKey(int);
+void tfChar(float x,float y,int c);
+#define KEY_ENTER (256+38)
+#define KEY_BACKSPACE (256+39)
