@@ -10,10 +10,6 @@ uint16_t T,MT;
 static uint16_t mnT,mxT,moT;
 const uint8_t col[13]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
-float rnorm(float a){
-	a=fmodf(a,M_PI*2);
-	return a>M_PI?a-M_PI*2:a;
-}
 uint8_t*pin,Pf[2],Pi;
 int8_t Pe=127;
 int Pt,Ph[2];
@@ -74,12 +70,6 @@ void stepBack(int n){
 				Py[0]=256-Py[0];
 				Bor=0;
 			case(25)
-				for(bxy*b=B;b<=Btop;b++){
-					b->x-=b->xd;
-					b->y-=b->yd;
-				}
-			case(26)Btop--;
-			case(27)
 				for(obje*e=E;e<=Etop;e++){
 					switch(e->t&127){
 					case(EROT)
@@ -89,6 +79,11 @@ void stepBack(int n){
 						e->y-=e->yd;
 					}
 				}
+				for(bxy*b=B;b<=Btop;b++){
+					b->x-=b->xd;
+					b->y-=b->yd;
+				}
+			case(26)Btop--;
 			case(28){
 				obje*e=E+r8();
 				e->d=rfloat();
@@ -202,7 +197,7 @@ int main(int argc,char**argv){
 		retex();
 	}
 	for(;;){
-		printf("-%d\n");
+		printf("-%d\n",T);
 		int shift=min(mnT,T)-rwT;
 		if(shift>0){
 			printf("<<%d %d %d\n",shift,rwp,rwT);
@@ -225,7 +220,7 @@ int main(int argc,char**argv){
 		}
 		if((cpi+=2)==pip){
 			pin=realloc(pin,pip+=2);
-			memset(pin+cpi,0,2);
+			memset(pin+cpi,cpi<2?0:pin[cpi-2+!Pt]&127,2);
 		}
 		if(Pe<0){
 			wfloat(Px[0]);
@@ -307,10 +302,11 @@ int main(int argc,char**argv){
 					if(!Lzo){
 						w8(32);
 						Lzo=1;
-						for(int i=0;i<32;i++){
-							Lzr[i][0]=Px[1];
-							Lzr[i][1]=Py[1]-4;
-						}
+						if(T==MT)
+							for(int i=0;i<32;i++){
+								Lzr[i][0]=Px[1];
+								Lzr[i][1]=Py[1]-4;
+							}
 					}
 				}else(!Bor){
 					w8(24);
@@ -439,8 +435,7 @@ int main(int argc,char**argv){
 				}
 			}else{
 				uint8_t oin;
-				int len=nrecv(&oin,1);
-				if(len==-1)return 0;
+				if(nrecv(&oin,1)==-1)return 0;
 				if((mnT-piT)*2>=pip){
 					int hip=pip;
 					pin=realloc(pin,pip=(mnT-piT+1)*2);

@@ -28,6 +28,10 @@ void mkbxy(int p,float x,float y,float xx,float yy,float v){
 	float xy=sqrt(xx*xx+yy*yy);
 	if(xy)mkb(p,x,y,xx*v/xy,yy*v/xy);
 }
+static float rnorm(float a){
+	a=fmodf(a,M_PI*2);
+	return a>M_PI?a-M_PI*2:a;
+}
 void xLz(int c,float x,float y,float d){
 	if(T==MT)
 		glTriangle(x,y,x+cos(d+M_PI/64)*c,y-sin(d+M_PI/64)*c,x+cos(d-M_PI/64)*c,y-sin(d-M_PI/64)*c);
@@ -38,8 +42,8 @@ int rinpb(float x,float y,int r,int p){
 	r*=r;
 	int n=0;
 	for(bxy*b=PB;b<=PBtop;b++)
-		if(dst2(x,y,b->x,b->y)<=r&&b->p!=p){
-			n++;
+		if(dst2(x,y,b->x,b->y)<=r){
+			if(b->p!=p)n++;
 			wbxy(*b);
 			w8(b-PB);
 			w8(20);
@@ -83,7 +87,7 @@ int nearest(float x,float y){
 	return dst2(x,y,Px[0],Py[0])>dst2(x,y,Px[1],Py[1]);
 }
 void eloop(){
-	if(Btop>=B)w8(25);
+	if(Btop>=B||Etop>=E)w8(25);
 	for(bxy*b=B;b<=Btop;b++){
 		float bx=b->x,by=b->y;
 		b->x+=b->xd;
@@ -108,7 +112,6 @@ void eloop(){
 			*b--=*Btop--;
 		}
 	}
-	if(Etop>=E)w8(27);
 	for(obje*e=E;e<=Etop;e++){
 		float r;
 		int et=!!(e->t&128);
@@ -223,8 +226,7 @@ void eloop(){
 			}else{
 				w8(e-E);
 				w8(36);
-				e->a[19]++;
-				if(e->a[19]==24)goto kille;
+				if(++e->a[19]==24)goto kille;
 			}
 		case(EROT)
 			e->x+=e->xd;

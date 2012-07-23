@@ -123,6 +123,6 @@ void genL1(){
 	for(int i=0;i<5;i++){
 		can(i*30+2100,0,64,i*20,1./i,M_PI*3/2);
 	}
-	printf("L1: %d\n",Lp-Lv);
+	printf("L1: %ld\n",Lp-Lv);
 	Lp=Lv;
 }

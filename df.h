@@ -12,7 +12,6 @@ typedef const uint8_t*const colt;
 void mkb(int p,float x,float y,float xd,float yd);
 void mkbd(int p,float x,float y,float v,float d);
 void mkbxy(int p,float x,float y,float xx,float yy,float v);
-float rnorm(float a);
 extern uint16_t T,MT;
 extern uint8_t*pin,Pf[2],Pi;
 extern int8_t Pe;
