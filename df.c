@@ -40,7 +40,7 @@ void stepBack(int n){
 				*e=robje();
 			}
 			case(14)
-				for(bxy*b=PB;b<=PBtop;b++){
+				for(bxy*b=PB;b<PBtop;b++){
 					b->x-=b->xd;
 					b->y-=b->yd;
 				}
@@ -56,7 +56,7 @@ void stepBack(int n){
 			case(19)PBtop--;
 			case(20){
 				bxy*b=PB+r8();
-				*++PBtop=*b;
+				*PBtop++=*b;
 				*b=rbxy();
 			}
 			case(21){
@@ -326,15 +326,15 @@ int main(int argc,char**argv){
 			w8(37);
 			if(++Bor>24)Bor=0;
 		}
-		if(PBtop>=PB)w8(14);
-		for(bxy*b=PB;b<=PBtop;b++){
+		if(PBtop>PB)w8(14);
+		for(bxy*b=PB;b<PBtop;b++){
 			b->x+=b->xd;
 			b->y+=b->yd;
 			if(b->y<0||b->x<0||b->x>128||b->y>256){
 				wbxy(*b);
 				w8(b-PB);
 				w8(20);
-				*b--=*PBtop--;
+				*b--=*--PBtop;
 			}else(T==MT){
 				glColor(red+b->p);
 				glRect(b->x-1,b->y-1,b->x+1,b->y+1);

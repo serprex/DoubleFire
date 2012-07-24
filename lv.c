@@ -15,7 +15,7 @@ void mke(){
 		Lp+=2;
 		uint8_t t=rl8();
 		w8(7);
-		obje*e=++Etop;
+		obje*e=Etop++;
 		e->t=t;
 		e->c=T;
 		switch(t&127){

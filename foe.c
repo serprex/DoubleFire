@@ -1,9 +1,9 @@
 #include "df.h"
-obje E[64],*Etop=E-1;
-bxy B[8192],*Btop=B-1,PB[256],*PBtop=PB-1;
+obje E[64],*Etop=E;
+bxy B[8192],*Btop=B,PB[256],*PBtop=PB;
 void mkpb(uint8_t p,float x,float y,float xd,float yd){
 	w8(19);
-	bxy*b=++PBtop;
+	bxy*b=PBtop++;
 	b->p=p;
 	b->x=x;
 	b->y=y;
@@ -12,7 +12,7 @@ void mkpb(uint8_t p,float x,float y,float xd,float yd){
 }
 void mkb(int p,float x,float y,float xd,float yd){
 	w8(26);
-	bxy*b=++Btop;
+	bxy*b=Btop++;
 	b->p=p;
 	b->x=x;
 	b->y=y;
@@ -41,13 +41,13 @@ void xLz(int c,float x,float y,float d){
 int rinpb(float x,float y,int r,int p){
 	r*=r;
 	int n=0;
-	for(bxy*b=PB;b<=PBtop;b++)
+	for(bxy*b=PB;b<PBtop;b++)
 		if(dst2(x,y,b->x,b->y)<=r){
 			if(b->p!=p)n++;
 			wbxy(*b);
 			w8(b-PB);
 			w8(20);
-			*b--=*PBtop--;
+			*b--=*--PBtop;
 		}
 	return n;
 }
@@ -87,8 +87,8 @@ int nearest(float x,float y){
 	return dst2(x,y,Px[0],Py[0])>dst2(x,y,Px[1],Py[1]);
 }
 void eloop(){
-	if(Btop>=B||Etop>=E)w8(25);
-	for(bxy*b=B;b<=Btop;b++){
+	if(Btop>B||Etop>E)w8(25);
+	for(bxy*b=B;b<Btop;b++){
 		float bx=b->x,by=b->y;
 		b->x+=b->xd;
 		b->y+=b->yd;
@@ -109,10 +109,10 @@ void eloop(){
 			wbxy(*b);
 			w16(b-B);
 			w8(21);
-			*b--=*Btop--;
+			*b--=*--Btop;
 		}
 	}
-	for(obje*e=E;e<=Etop;e++){
+	for(obje*e=E;e<Etop;e++){
 		float r;
 		int et=!!(e->t&128);
 		switch(e->t&127){
@@ -277,7 +277,7 @@ void eloop(){
 			wobje(*e);
 			w8(e-E);
 			w8(9);
-			*e--=*Etop--;
+			*e--=*--Etop;
 		}
 	}
 }
