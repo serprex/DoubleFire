@@ -136,29 +136,14 @@ void drawSpr(sprid s,int x,int y,int f,const uint8_t*c){
 	glColor3ubv(c);
 	drawSpr_(s,x,y,f*2,0);
 }
-void glCirc(float xx,float yy,float r){
-	float f=1-r,fx=1,fy=r*2,x=0,y=r;
-	glBegin(GL_QUADS);
-	while(x<y)
-	{
-		if(f>=0)
-		{
-			y--;
-			fy-=2;
-			f-=fy;
-		}
-		x++;
-		fx+=2;
-		f+=fx;
-		glVertex2f(xx+x,yy+y);
-		glVertex2f(xx-x,yy+y);
-		glVertex2f(xx-x,yy-y);
-		glVertex2f(xx+x,yy-y);
-		glVertex2f(xx+y,yy+x);
-		glVertex2f(xx-y,yy+x);
-		glVertex2f(xx-y,yy-x);
-		glVertex2f(xx+y,yy-x);
+void glCirc(float x,float y,float r){
+	if(!r)return;
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex2f(x,y);
+	for(float a=0;a<M_PI*2;a+=2/r){
+		glVertex2f(x+cosf(a)*r,y+sinf(a)*r);
 	}
+	glVertex2f(x+r,y);
 	glEnd();
 }
 static void glLine1(float x1,float y1,float x2,float y2){
@@ -254,8 +239,7 @@ int sprKey(int k){return glfwGetKey(k);}
 int sprInput(){
 	glfwPollEvents();
 	if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){
-		uint8_t a=0;
-		nsend(&a,1);
+		nsend(0,0);
 		exit(0);
 	}
 	return glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;

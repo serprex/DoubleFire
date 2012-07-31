@@ -10,9 +10,9 @@ uint16_t T,MT;
 static uint16_t mnT,mxT,moT;
 const uint8_t col[13]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
-uint8_t*pin,Pf[2],Pi;
+uint8_t Pt,*pin,Pf[2],Pi;
 int8_t Pe=127;
-int Pt,Ph[2];
+int Ph[2];
 uint16_t Php[2];
 float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
@@ -139,11 +139,8 @@ int main(int argc,char**argv){
 		char ipstr[17],*ipstrp=ipstr,lch;
 		do{
 			int in=sprInput();
-			if(gA(in)){
-				Pt=0;
-			}else(gD(in)){
-				Pt=1;
-			}
+			if(gA(in))Pt=0;
+			else(gD(in))Pt=1;
 			char llch=lch;
 			if(sprKey(KEY_BACKSPACE)&&ipstrp>ipstr)
 				ipstrp--;
@@ -176,28 +173,9 @@ int main(int argc,char**argv){
 		}while(!sprKey(KEY_ENTER));
 		*ipstrp=0;
 		isudp=netinit(ipstr);
-	}else{
-		Pt=atoi(argv[1]);
-		isudp=netinit(argv[2]);
-	}
-	if(isudp){
-		notex();
-		for(;;){
-			nsend(0,0);
-			if(any()){
-				nrecv(0,0);
-				break;
-			}
-			sprInput();
-			sprBeginFrame();
-			rndcol();
-			glRect(0,0,160,256);
-			sprEndFrame(1./5);
-		}
-		retex();
-	}
+	}else isudp=netinit(argv[1]);
 	for(;;){
-		printf("-%d\n",T);
+		printf("-%d %d\n",T,Bor);
 		int shift=min(mnT,T)-rwT;
 		if(shift>0){
 			printf("<<%d %d %d\n",shift,rwp,rwT);
@@ -252,6 +230,11 @@ int main(int argc,char**argv){
 			}
 			notex();
 			disableBlend();
+		}
+		if(Bor){
+			w8(Bor);
+			w8(37);
+			if(++Bor>24)Bor=0;
 		}
 		for(int i=0;i<2;i++){
 			float Pxx=(gD(pin[cpi+i])-gA(pin[cpi+i]))*1.5,Pyy=(gS(pin[cpi+i])-gW(pin[cpi+i]))*1.5;
@@ -321,11 +304,6 @@ int main(int argc,char**argv){
 				Lzo=0;
 			}
 		}
-		if(Bor){
-			w8(Bor);
-			w8(37);
-			if(++Bor>24)Bor=0;
-		}
 		if(PBtop>PB)w8(14);
 		for(bxy*b=PB;b<PBtop;b++){
 			b->x+=b->xd;
@@ -346,13 +324,10 @@ int main(int argc,char**argv){
 		Php[0]=Php[1]=0;
 		if(T==MT)rndcol();
 		eloop();
-		printf("Pi %d\n",Pi);
 		if(Pi){
-			printf("PI %d Pe",Pe);
 			w8(15);
 			Pi--;
 		}else{
-			printf("PH %d %d\n",Ph[0],Ph[1]);
 			if(Lzo&&Ph[1]==1)Ph[1]=0;
 			for(int i=0;i<2;i++)
 				if(Ph[i]==1&&Pe<127){
@@ -390,6 +365,7 @@ int main(int argc,char**argv){
 			retex();
 			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&3)>1,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,(Pf[1]&3)>1,shb);
+			printf("MXTT %d %d\n",mxT,T);
 			sprEndFrame(mxT>T?0:1./30);
 			MT++;
 		}
@@ -399,10 +375,9 @@ int main(int argc,char**argv){
 				uint8_t ubu[6];
 				int len=nrecv(ubu,5);
 				uint8_t oin=ubu[2];
-				if(!len){
-					if(++welt&1)nsend(0,0);
-				}else(len==1){
-					return 0;
+				if(!len)return 0;
+				else(len==1){
+					if(++welt&1)nsend(&Pt,1);
 				}else(len>=3){
 					uint16_t mt=*(uint16_t*)ubu;
 					printf("udp%d: %d %d\n",len,mt,oin);

@@ -31,17 +31,17 @@ int netinit(char*ipstr){
 	WSADATA WsaData;
     WSAStartup(MAKEWORD(2,2),&WsaData);
 	#endif
-	int type=SOCK_DGRAM;
+	int type;
 	if(ipstr&&*ipstr=='t'){
 		type=SOCK_STREAM;
 		if(!*++ipstr)ipstr=0;
-	}
+	}else type=SOCK_DGRAM;
 	if(ipstr&&!*ipstr)ipstr=0;
 	udp=socket(AF_INET,type,0);
 	struct sockaddr_in udpip={.sin_family=AF_INET,.sin_addr.s_addr=htonl(INADDR_ANY),.sin_port=htons(2000+!!ipstr)};
 	bind(udp,(struct sockaddr*)&udpip,sizeof(udpip));
 	if(ipstr){
-		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=htons(2000+!ipstr)};
+		struct sockaddr_in ip={.sin_family=AF_INET,.sin_port=htons(2000)};
 		ip.sin_addr.s_addr=inet_addr(ipstr);
 		connect(udp,(struct sockaddr*)&ip,sizeof(ip));
 	}else{
@@ -61,7 +61,27 @@ int netinit(char*ipstr){
 	if(type==SOCK_STREAM){
 		int one=1;
 		setsockopt(udp,IPPROTO_TCP,TCP_NODELAY,(char*)&one,sizeof(int));
+		if(ipstr){
+			recv(udp,&Pt,1,0);
+			Pt^=1;
+		}else send(udp,&Pt,1,0);
 		return 0;
 	}
+	notex();
+	for(;;){
+		uint8_t pt=Pt,*ptp=ipstr?&Pt:&pt;
+		nsend(ptp,1);
+		if(any()){
+			nrecv(ptp,1);
+			*ptp^=1;
+			break;
+		}
+		sprInput();
+		sprBeginFrame();
+		rndcol();
+		glRect(0,0,160,256);
+		sprEndFrame(1./5);
+	}
+	retex();
 	return 1;
 }
