@@ -66,6 +66,8 @@ void stepBack(int n){
 			}
 			case(22 ... 23)Pf[a-22]=r8();
 			case(24)
+				Boy=r8();
+				Box=r8();
 				Px[0]=128-Px[0];
 				Py[0]=256-Py[0];
 				Bor=0;
@@ -292,6 +294,8 @@ int main(int argc,char**argv){
 							}
 					}
 				}else(!Bor){
+					w8(Box);
+					w8(Boy);
 					w8(24);
 					Px[0]=128-Px[0];
 					Py[0]=256-Py[0];
