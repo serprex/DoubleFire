@@ -100,7 +100,7 @@ static void dog(uint16_t t,int16_t x,int16_t y,float v,float d){
 	lfloat(d);
 }
 void genL1(){
-	/*for(int i=0;i<5;i++){
+	for(int i=0;i<5;i++){
 		can(i*60+5,i&1,10,10,1,M_PI*3/2);
 		can(i*60+15,!(i&1),118,246,1,M_PI/2);
 	}
@@ -117,12 +117,12 @@ void genL1(){
 			dog(1000+i*66,32,64,1,0);
 			dog(1000+i*66,96,64,1,M_PI);
 		}
-	}*/
-	b2(20);
-	/*can(2060,0,64,128,0,M_PI*3/2);
+	}
+	b2(2000);
+	can(2060,0,64,128,0,M_PI*3/2);
 	for(int i=0;i<5;i++){
 		can(i*30+2100,0,64,i*20,1./i,M_PI*3/2);
-	}*/
+	}
 	printf("L1: %ld\n",Lp-Lv);
 	Lp=Lv;
 }
