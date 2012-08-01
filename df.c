@@ -25,7 +25,7 @@ void stepBack(int n){
 			case(4 ... 5)Py[a-4]=rfloat();
 			case(6)Pe=r8();
 			case(7)Etop--;
-			case(8)Lp-=r8();printf("!!!!\n");
+			case(8)Lp-=r8();
 			case(9){
 				obje*e=E+r8();
 				*++Etop=*e;
@@ -180,7 +180,6 @@ int main(int argc,char**argv){
 		isudp=netinit(argv[1]);
 	}
 	for(;;){
-		printf("\t<<%d %d |%d:%d:%d| %d,%d,%d %d,%d,%d\n",min(mnT,T)-rwT,min(min(mnT,T),moT)*2-piT,T,mnT,moT,crw,rwp,rwT,cpi,pip,piT);
 		int shift=min(mnT,T)-rwT;
 		if(shift>0){
 			crw-=shift;
@@ -194,7 +193,7 @@ int main(int argc,char**argv){
 			rw[crw].p=0;
 			rw[crw].n=0;
 		}
-		shift=min(min(mnT,T),moT)*2-piT;
+		shift=min(min(mnT,T),(isudp?moT:T))*2-piT;
 		if(shift>0){
 			cpi-=shift;
 			piT+=shift;
@@ -211,15 +210,15 @@ int main(int argc,char**argv){
 				uint8_t pcm[6];
 				*(uint16_t*)pcm=T;
 				pcm[2]=pin[cpi+Pt]=sprInput();
-				if(mxT-mnT>4){
+				if(!(T&3)&&mxT-mnT>4){
+					printf("requesting %d\n",mnT);
 					len+=3;
 					*(uint16_t*)(pcm+3)=mnT;
 					pcm[5]=pin[cpi+!Pt];
-				}else(!(T&127)){
+				}else(!(T&63)){
 					len+=2;
 					*(uint16_t*)(pcm+3)=mnT;
 				}
-				printf("send%d\n",len);
 				nsend(pcm,len);
 			}else{
 				pin[cpi+Pt]=sprInput();
@@ -239,7 +238,7 @@ int main(int argc,char**argv){
 			Pe=127;
 		}
 		mke();
-		printf("%s%d %d %x:%x\t%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1],Pe);
+		printf("%s%d %d %.2x:%.2x  %d,%d %d,%d\t%d:%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1],(int)Px[0],(int)Py[0],(int)Px[1],(int)Py[1],mnT,moT);
 		if(Bor){
 			w8(Bor);
 			w8(37);
@@ -364,8 +363,9 @@ int main(int argc,char**argv){
 			}
 			rndcol();
 			glRect(128,0,136,Pe*2);
-			glRect(136,64,144,64+T-mnT);
-			glRect(144,64,152,64+T-mxT);
+			glRect(136,64,144,64+T-mxT);
+			glRect(144,64,152,64+T-mnT);
+			if(isudp)glRect(152,64,160,64+T-moT);
 			enableBlend();
 			if(Lzo){
 				memmove(Lzr+1,Lzr,248);
@@ -382,57 +382,66 @@ int main(int argc,char**argv){
 		T++;
 		while(any()){
 			if(isudp){
-				uint8_t ubu[6];
-				int len=nrecv(ubu,6);
-				uint8_t oin=ubu[2];
+				struct{uint16_t mt;uint8_t in;uint16_t rt;uint8_t rin;}__attribute__((packed))p;
+				int len=nrecv(&p,6);
 				if(!len)return 0;
-				else(len==1){
-					if(++welt&1)nsend(&Pt,1);
+				else(len==1&&++welt&1)nsend(&Pt,1);
+				else(len==2){
+					if(p.mt*2<piT||p.mt*2>piT+pip)
+						printf("2mt out of range: %d %d %d\n",p.mt*2,piT,pip);
+					else{
+						pin[p.mt*2-piT+!Pt]|=128;
+						goto updateTs;
+					}
 				}else(len>=3){
-					uint16_t mt=*(uint16_t*)ubu;
-					printf("udp%d: %d %d\n",len,mt,oin);
-					if(mt*2+2-piT>pip){
+					printf("udp%d: %d %x",len,p.mt,p.in);
+					if(p.mt*2+2-piT>pip){
 						int hip=pip;
-						pin=realloc(pin,pip=mt*2+2-piT);
-						memset(pin+hip,oin,pip-hip);
+						pin=realloc(pin,pip=p.mt*2+2-piT);
+						memset(pin+hip,p.in,pip-hip);
 					}
-					if(!(pin[mt*2-piT+!Pt]&128)){
+					if(p.mt*2<piT||p.mt*2>piT+pip)
+						printf("%dmt out of range: %d %d %d\n",len,p.mt*2,piT,pip);
+					if(!(pin[p.mt*2-piT+!Pt]&128)){
 						if(len>=5){
-							uint16_t rt=*(uint16_t*)(ubu+3);
-							if(rt>=moT){
-								moT=rt;
-								if(len==6&&ubu[5]!=pin[rt*2-piT+Pt]){
-									ubu[5]=pin[rt*2-piT+Pt];
-									printf("ubu5pin%d %d %d\n",rt,rt*2-piT+Pt,ubu[5]);
-									nsend(ubu+3,3);
-								}
+							printf(" %d",p.rt);
+							if(p.rt>=moT){
+								moT=p.rt;
+								if(len==6&&p.rin!=pin[p.rt*2-piT+Pt]){
+									printf(" %d",p.rin);
+									p.rin=pin[p.rt*2-piT+Pt];
+									nsend(&p.rt,3);
+								}else nsend(&p.rt,2);
 							}
 						}
-						if(mt<T&&pin[mt*2-piT+!Pt]!=oin){
-							for(int i=mt*2+2-piT+!Pt;i<pip;i+=2){
+						if(p.mt<T&&pin[p.mt*2-piT+!Pt]!=p.in){
+							for(int i=p.mt*2+2-piT+!Pt;i<pip;i+=2){
 								if(pin[i]&128)break;
-								pin[i]=oin;
+								pin[i]=p.in;
 							}
-							stepBack(T-mt);
+							stepBack(T-p.mt);
 						}
-						pin[mt*2-piT+!Pt]=oin|128;
-						if(mt==mnT)mnT++;
-						if(mt>mxT)mxT=mt;
+						pin[p.mt*2-piT+!Pt]=p.in|128;
+					updateTs:
+						if(p.mt>mxT)mxT=p.mt;
+						if(p.mt==mnT)
+							do mnT++; while(mnT*2-piT<pip&&(pin[mnT*2-piT+!Pt]&128));
 					}
+					printf("\n");
 				}
 			}else{
-				uint8_t oin;
-				if(nrecv(&oin,1)==-1)return 0;
+				uint8_t in;
+				if(nrecv(&in,1)==-1)return 0;
 				if(mnT*2+2-piT>pip){
 					int hip=pip;
 					pin=realloc(pin,pip=mnT*2+2-piT);
-					memset(pin+hip,oin,pip-hip);
+					memset(pin+hip,in,pip-hip);
 				}
-				if(pin[mnT*2-piT+!Pt]!=oin){
-					pin[mnT*2-piT+!Pt]=oin|128;
+				if(pin[mnT*2-piT+!Pt]!=in){
+					pin[mnT*2-piT+!Pt]=in|128;
 					if(mnT<T){
 						for(int i=mnT*2+2-piT+!Pt;i<pip;i+=2)
-							pin[i]=oin;
+							pin[i]=in;
 						stepBack(T-mnT);
 					}
 				}
