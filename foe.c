@@ -92,11 +92,11 @@ void eloop(){
 		float bx=b->x,by=b->y;
 		b->x+=b->xd;
 		b->y+=b->yd;
+		if(b->y<0||b->x<0||b->x>128||b->y>256)goto killb;
 		if(T==MT){
 			glLine(bx,by,b->x,b->y);
 			glRect(b->x-1,b->y-1,b->x+1,b->y+1);
 		}
-		if(b->y<0||b->x<0||b->x>128||b->y>256)goto killb;
 		for(int i=0;i<2;i++)
 			if(btop(i,b)<256){
 				if(Php[i]!=b->p){
@@ -250,6 +250,10 @@ void eloop(){
 		case(EDOG)
 			et=nearest(e->x,e->y);
 			if(dst2(e->x,e->y,Px[et],Py[et])<64){
+				wfloat(Px[et]);
+				w8(2+et);
+				wfloat(Py[et]);
+				w8(4+et);
 				Px[et]=e->x;
 				Py[et]=e->y;
 			}else{

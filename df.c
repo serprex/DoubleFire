@@ -47,8 +47,12 @@ void stepBack(int n){
 			case(16)Pe--;
 			case(17)
 				Btop=B+r16();
-				for(bxy*b=Btop;b>=B;b--)
-					*b=rbxy();
+				if(Btop>B){
+					for(bxy*b=Btop-1;;b--){
+						*b=rbxy();
+						if(b==B)break;
+					}
+				}
 			case 18:
 				Pe+=48;
 				Pi=0;
@@ -60,16 +64,16 @@ void stepBack(int n){
 			}
 			case(21){
 				bxy*b=B+r16();
-				*++Btop=*b;
+				*Btop++=*b;
 				*b=rbxy();
 			}
 			case(22 ... 23)Pf[a-22]=r8();
 			case(24)
 				Boy=r8();
 				Box=r8();
+				Bor=0;
 				Px[0]=128-Px[0];
 				Py[0]=256-Py[0];
-				Bor=0;
 			case(25)
 				for(obje*e=E;e<=Etop;e++){
 					switch(e->t&127){
@@ -126,10 +130,7 @@ void stepBack(int n){
 		T--;
 		crw--;
 		cpi-=2;
-		if(!--n||crw==-1){
-			printf(":%d\n",crw);
-			return;
-		}
+		if(!--n||crw==-1)return;
 	}
 }
 int main(int argc,char**argv){
@@ -179,9 +180,9 @@ int main(int argc,char**argv){
 		isudp=netinit(argv[1]);
 	}
 	for(;;){
+		printf("\t<<%d %d |%d:%d:%d| %d,%d,%d %d,%d,%d\n",min(mnT,T)-rwT,min(min(mnT,T),moT)*2-piT,T,mnT,moT,crw,rwp,rwT,cpi,pip,piT);
 		int shift=min(mnT,T)-rwT;
 		if(shift>0){
-			printf("<<%d %d,%d,%d %d,%d,%d\n",shift,crw,rwp,rwT,piT,cpi,pip);
 			crw-=shift;
 			rwT+=shift;
 			for(int i=0;i<shift;i++)
@@ -203,7 +204,30 @@ int main(int argc,char**argv){
 			pin=realloc(pin,pip+=2);
 			memset(pin+cpi,cpi<2?0:pin[cpi-2+!Pt]&127,2);
 		}
-		printf("%s%d %d\t%d,%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1]);
+		if(T==MT){
+			sprBeginFrame();
+			if(isudp){
+				int len=3;
+				uint8_t pcm[6];
+				*(uint16_t*)pcm=T;
+				pcm[2]=pin[cpi+Pt]=sprInput();
+				if(mxT-mnT>4){
+					len+=3;
+					*(uint16_t*)(pcm+3)=mnT;
+					pcm[5]=pin[cpi+!Pt];
+				}else(!(T&127)){
+					len+=2;
+					*(uint16_t*)(pcm+3)=mnT;
+				}
+				printf("send%d\n",len);
+				nsend(pcm,len);
+			}else{
+				pin[cpi+Pt]=sprInput();
+				nsend(pin+cpi+Pt,1);
+			}
+			notex();
+			disableBlend();
+		}
 		if(Pe<0){
 			wfloat(Px[0]);
 			w8(2);
@@ -215,25 +239,7 @@ int main(int argc,char**argv){
 			Pe=127;
 		}
 		mke();
-		if(T==MT){
-			sprBeginFrame();
-			if(isudp){
-				int len=3;
-				uint8_t pcm[5];
-				*(uint16_t*)pcm=T;
-				pcm[2]=pin[cpi+Pt]=sprInput();
-				if(mxT-mnT>4){
-					len+=2;
-					*(uint16_t*)(pcm+3)=mnT;
-				}
-				nsend(pcm,len);
-			}else{
-				pin[cpi+Pt]=sprInput();
-				nsend(pin+cpi+Pt,1);
-			}
-			notex();
-			disableBlend();
-		}
+		printf("%s%d %d %x:%x\t%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1],Pe);
 		if(Bor){
 			w8(Bor);
 			w8(37);
@@ -298,11 +304,11 @@ int main(int argc,char**argv){
 					w8(Box);
 					w8(Boy);
 					w8(24);
+					Bor=1;
+					Box=Px[0];
+					Boy=Py[0];
 					Px[0]=128-Px[0];
 					Py[0]=256-Py[0];
-					Bor=1;
-					Box=128-Px[0];
-					Boy=256-Py[0];
 				}
 			}else(Lzo&&i){
 				w8(33);
@@ -340,11 +346,11 @@ int main(int argc,char**argv){
 					Pe++;
 				}else(Ph[i]<1){
 					if(Btop>=B){
-						for(bxy*b=B;b<=Btop;b++)
+						for(bxy*b=B;b<Btop;b++)
 							wbxy(*b);
 						w16(Btop-B);
 						w8(17);
-						Btop=B-1;
+						Btop=B;
 					}else w8(18);
 					Pe-=48;
 					Pi=64;
@@ -377,7 +383,7 @@ int main(int argc,char**argv){
 		while(any()){
 			if(isudp){
 				uint8_t ubu[6];
-				int len=nrecv(ubu,5);
+				int len=nrecv(ubu,6);
 				uint8_t oin=ubu[2];
 				if(!len)return 0;
 				else(len==1){
@@ -391,13 +397,15 @@ int main(int argc,char**argv){
 						memset(pin+hip,oin,pip-hip);
 					}
 					if(!(pin[mt*2-piT+!Pt]&128)){
-						if(len==5){
+						if(len>=5){
 							uint16_t rt=*(uint16_t*)(ubu+3);
 							if(rt>=moT){
 								moT=rt;
-								ubu[5]=pin[rt*2-piT+Pt];
-								printf("ubu5pin %d %d\n",rt*2-piT+Pt,ubu[5]);
-								nsend(ubu+3,3);
+								if(len==6&&ubu[5]!=pin[rt*2-piT+Pt]){
+									ubu[5]=pin[rt*2-piT+Pt];
+									printf("ubu5pin%d %d %d\n",rt,rt*2-piT+Pt,ubu[5]);
+									nsend(ubu+3,3);
+								}
 							}
 						}
 						if(mt<T&&pin[mt*2-piT+!Pt]!=oin){
