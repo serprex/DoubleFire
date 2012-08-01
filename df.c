@@ -17,7 +17,6 @@ uint16_t Php[2];
 float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
 void stepBack(int n){
-	printf("sb %d %d",n,crw);
 	for(;;){
 		while(rw[crw].n){
 			uint8_t a=r8();
@@ -175,12 +174,14 @@ int main(int argc,char**argv){
 		}while(!sprKey(KEY_ENTER));
 		*ipstrp=0;
 		isudp=netinit(ipstr);
-	}else isudp=netinit(argv[1]);
+	}else{
+		if(argc==3)Pt=atoi(argv[2]);
+		isudp=netinit(argv[1]);
+	}
 	for(;;){
-		printf("-%d %d\n",T,Bor);
 		int shift=min(mnT,T)-rwT;
 		if(shift>0){
-			printf("<<%d %d %d\n",shift,rwp,rwT);
+			printf("<<%d %d,%d,%d %d,%d,%d\n",shift,crw,rwp,rwT,piT,cpi,pip);
 			crw-=shift;
 			rwT+=shift;
 			for(int i=0;i<shift;i++)
@@ -192,7 +193,7 @@ int main(int argc,char**argv){
 			rw[crw].p=0;
 			rw[crw].n=0;
 		}
-		shift=(min(min(mnT,T),moT)-piT)*2;
+		shift=min(min(mnT,T),moT)*2-piT;
 		if(shift>0){
 			cpi-=shift;
 			piT+=shift;
@@ -202,6 +203,7 @@ int main(int argc,char**argv){
 			pin=realloc(pin,pip+=2);
 			memset(pin+cpi,cpi<2?0:pin[cpi-2+!Pt]&127,2);
 		}
+		printf("%s%d %d\t%d,%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1]);
 		if(Pe<0){
 			wfloat(Px[0]);
 			w8(2);
@@ -214,7 +216,6 @@ int main(int argc,char**argv){
 		}
 		mke();
 		if(T==MT){
-			printf("==%d\n",T);
 			sprBeginFrame();
 			if(isudp){
 				int len=3;
@@ -369,7 +370,6 @@ int main(int argc,char**argv){
 			retex();
 			drawSpr(Kae,Px[0]-3,Py[0]-4,(Pf[0]&3)>1,shr);
 			drawSpr(Ika,Px[1]-3,Py[1]-4,(Pf[1]&3)>1,shb);
-			printf("MXTT %d %d\n",mxT,T);
 			sprEndFrame(mxT>T?0:1./30);
 			MT++;
 		}
@@ -385,29 +385,29 @@ int main(int argc,char**argv){
 				}else(len>=3){
 					uint16_t mt=*(uint16_t*)ubu;
 					printf("udp%d: %d %d\n",len,mt,oin);
-					if((mt-piT)*2>=pip){
+					if(mt*2+2-piT>pip){
 						int hip=pip;
-						pin=realloc(pin,pip=(mt-piT+1)*2);
+						pin=realloc(pin,pip=mt*2+2-piT);
 						memset(pin+hip,oin,pip-hip);
 					}
-					if(!(pin[(mt-piT)*2+!Pt]&128)){
+					if(!(pin[mt*2-piT+!Pt]&128)){
 						if(len==5){
 							uint16_t rt=*(uint16_t*)(ubu+3);
 							if(rt>=moT){
 								moT=rt;
-								ubu[5]=pin[(rt-piT)*2+Pt];
-								printf("ubu5pin %d\n",(rt-piT)*2+Pt);
+								ubu[5]=pin[rt*2-piT+Pt];
+								printf("ubu5pin %d %d\n",rt*2-piT+Pt,ubu[5]);
 								nsend(ubu+3,3);
 							}
 						}
-						pin[(mt-piT)*2+!Pt]=oin|128;
-						if(mt<T){
-							for(int i=(1+mt-piT)*2+!Pt;i<pip;i+=2){
+						if(mt<T&&pin[mt*2-piT+!Pt]!=oin){
+							for(int i=mt*2+2-piT+!Pt;i<pip;i+=2){
 								if(pin[i]&128)break;
 								pin[i]=oin;
 							}
 							stepBack(T-mt);
 						}
+						pin[mt*2-piT+!Pt]=oin|128;
 						if(mt==mnT)mnT++;
 						if(mt>mxT)mxT=mt;
 					}
@@ -415,23 +415,20 @@ int main(int argc,char**argv){
 			}else{
 				uint8_t oin;
 				if(nrecv(&oin,1)==-1)return 0;
-				if((mnT-piT)*2>=pip){
+				if(mnT*2+2-piT>pip){
 					int hip=pip;
-					pin=realloc(pin,pip=(mnT-piT+1)*2);
+					pin=realloc(pin,pip=mnT*2+2-piT);
 					memset(pin+hip,oin,pip-hip);
 				}
-				if(pin[(mnT-piT)*2+!Pt]!=oin){
-					pin[(mnT-piT)*2+!Pt]=oin|128;
+				if(pin[mnT*2-piT+!Pt]!=oin){
+					pin[mnT*2-piT+!Pt]=oin|128;
 					if(mnT<T){
-						for(int i=(1+mnT-piT)*2+!Pt;i<pip;i+=2){
-							if(pin[i]&128)break;
+						for(int i=mnT*2+2-piT+!Pt;i<pip;i+=2)
 							pin[i]=oin;
-						}
 						stepBack(T-mnT);
 					}
-				}else pin[(mnT-piT)*2+!Pt]|=128;
-				mnT++;
-				mxT=mnT-1;
+				}
+				mxT=mnT++;
 			}
 		}
 	}
