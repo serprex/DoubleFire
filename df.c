@@ -75,7 +75,7 @@ void stepBack(int n){
 				Px[0]=128-Px[0];
 				Py[0]=256-Py[0];
 			case(25)
-				for(obje*e=E;e<=Etop;e++){
+				for(obje*e=E;e<Etop;e++){
 					switch(e->t&127){
 					case(EROT)
 						e->d-=M_PI/(e->t&128?128:-128);
@@ -84,7 +84,7 @@ void stepBack(int n){
 						e->y-=e->yd;
 					}
 				}
-				for(bxy*b=B;b<=Btop;b++){
+				for(bxy*b=B;b<Btop;b++){
 					b->x-=b->xd;
 					b->y-=b->yd;
 				}
@@ -158,7 +158,8 @@ int main(int argc,char**argv){
 					lch=0;
 				}
 			}
-			lchset:if(lch&&llch==lch)ipstrp--;
+		lchset:
+			if(lch&&llch==lch)ipstrp--;
 			sprBeginFrame();
 			notex();
 			rndcol();
@@ -193,7 +194,7 @@ int main(int argc,char**argv){
 			rw[crw].p=0;
 			rw[crw].n=0;
 		}
-		shift=min(min(mnT,T),(isudp?moT:T))*2-piT;
+		shift=min(T,isudp?min(mnT,moT):mnT)*2-piT;
 		if(shift>0){
 			cpi-=shift;
 			piT+=shift;
@@ -391,6 +392,7 @@ int main(int argc,char**argv){
 						printf("2mt out of range: %d %d %d\n",p.mt*2,piT,pip);
 					else{
 						pin[p.mt*2-piT+!Pt]|=128;
+						printf("udp2: %d",p.mt);
 						goto updateTs;
 					}
 				}else(len>=3){
@@ -408,7 +410,7 @@ int main(int argc,char**argv){
 							if(p.rt>=moT){
 								moT=p.rt;
 								if(len==6&&p.rin!=pin[p.rt*2-piT+Pt]){
-									printf(" %d",p.rin);
+									printf(" %x",p.rin);
 									p.rin=pin[p.rt*2-piT+Pt];
 									nsend(&p.rt,3);
 								}else nsend(&p.rt,2);
