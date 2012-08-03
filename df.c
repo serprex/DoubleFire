@@ -10,7 +10,7 @@ uint16_t T,MT;
 static uint16_t mnT,mxT,moT;
 const uint8_t col[13]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
-uint8_t Pt,*pin,Pf[2],Pi;
+uint8_t*pin,Pt,Pf[2],Pi;
 int8_t Pe=127;
 int Ph[2];
 uint16_t Php[2];
@@ -32,11 +32,6 @@ void stepBack(int n){
 				*e=robje();
 			}
 			case(10 ... 11)Pf[a-10]=0;
-			case(13){
-				obje*e=E+r8();
-				*++Etop=*e;
-				*e=robje();
-			}
 			case(14)
 				for(bxy*b=PB;b<PBtop;b++){
 					b->x-=b->xd;
@@ -127,7 +122,8 @@ void stepBack(int n){
 		T--;
 		crw--;
 		cpi-=2;
-		if(!--n||crw==-1)return;
+		if(!--n)return;
+		assert(crw!=-1&&cpi!=-2);
 	}
 }
 int main(int argc,char**argv){
@@ -199,7 +195,7 @@ int main(int argc,char**argv){
 		}
 		if((cpi+=2)==pip){
 			pin=realloc(pin,pip+=2);
-			memset(pin+cpi,cpi<2?0:pin[cpi-2+!Pt]&127,2);
+			memset(pin+cpi,cpi?pin[cpi-2+!Pt]&127:0,2);
 		}
 		if(T==MT){
 			sprBeginFrame();
@@ -236,7 +232,7 @@ int main(int argc,char**argv){
 			Pe=127;
 		}
 		mke();
-		printf("%s%d %d  %.2x:%.2x  %.2x:%.2x %d:%d:%d %d,%d %d,%d   %d:%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1],Pe,Pi,Btop-B,Etop-E,PBtop-PB,(int)Px[0],(int)Py[0],(int)Px[1],(int)Py[1],mnT,moT);
+		printf("%s%d %.2x:%.2x  %.2x:%.2x %d:%d:%d %d,%d %d,%d   %d:%d:%d\n",T==MT?"==":"-",T,pin[cpi],pin[cpi+1],Pe,Pi,Btop-B,Etop-E,PBtop-PB,(int)Px[0],(int)Py[0],(int)Px[1],(int)Py[1],mnT,moT,mxT);
 		if(Bor){
 			w8(Bor);
 			w8(37);
@@ -388,32 +384,36 @@ int main(int argc,char**argv){
 				if(!len)return 0;
 				else(len==1&&++welt&1)nsend(&Pt,1);
 				else(len==2){
-					if(p.mt*2<piT||p.mt*2>piT+pip)
-						printf("2mt out of range: %d %d %d\n",p.mt*2,piT,pip);
+					if(p.mt*2<piT||p.mt*2+2>piT+pip)
+						printf("2mt out of range: %d %d %d\n",p.mt*2,piT,piT+pip);
 					else{
 						pin[p.mt*2-piT+!Pt]|=128;
 						printf("udp2: %d",p.mt);
 						goto updateTs;
 					}
 				}else(len>=3){
-					printf("udp%d: %d %x",len,p.mt,p.in);
+					if(p.mt*2<piT){
+						printf("%d p.mt*2<piT %d %d %d\n",len,p.mt*2,piT,piT+pip);
+						continue;
+					}
+					printf("udp%d: %d %.2x",len,p.mt,p.in);
 					if(p.mt*2+2-piT>pip){
 						int hip=pip;
 						pin=realloc(pin,pip=p.mt*2+2-piT);
 						memset(pin+hip,p.in,pip-hip);
 					}
-					if(p.mt*2<piT||p.mt*2>piT+pip)
-						printf("%dmt out of range: %d %d %d\n",len,p.mt*2,piT,pip);
 					if(!(pin[p.mt*2-piT+!Pt]&128)){
 						if(len>=5){
 							printf(" %d",p.rt);
 							if(p.rt>=moT){
 								moT=p.rt;
-								if(len==6&&p.rin!=pin[p.rt*2-piT+Pt]){
-									printf(" %x",p.rin);
-									p.rin=pin[p.rt*2-piT+Pt];
-									nsend(&p.rt,3);
-								}else nsend(&p.rt,2);
+								if(len==6){
+									if(p.rin!=pin[p.rt*2-piT+Pt]){
+										printf(" %.2x",p.rin);
+										p.rin=pin[p.rt*2-piT+Pt];
+										nsend(&p.rt,3);
+									}else nsend(&p.rt,2);
+								}
 							}
 						}
 						if(p.mt<T&&pin[p.mt*2-piT+!Pt]!=p.in){

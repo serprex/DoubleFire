@@ -194,8 +194,7 @@ void eloop(){
 			}else(rdmg(e->x,e->y,e->h,!!(e->h&8))||e->h<7){
 				w8(e-E);
 				w8(38);
-				e->h--;
-				if(!e->h)goto kille;
+				if(!--e->h)goto kille;
 			}
 		case(EB2)
 			for(int y=0;y<4;y++)
