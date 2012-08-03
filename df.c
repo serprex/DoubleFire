@@ -28,11 +28,10 @@ void stepBack(int n){
 			case(8)Lp-=r8();
 			case(9){
 				obje*e=E+r8();
-				*++Etop=*e;
+				*Etop++=*e;
 				*e=robje();
 			}
 			case(10 ... 11)Pf[a-10]=0;
-			case(12)PBtop--;
 			case(13){
 				obje*e=E+r8();
 				*++Etop=*e;
@@ -47,11 +46,9 @@ void stepBack(int n){
 			case(16)Pe--;
 			case(17)
 				Btop=B+r16();
-				if(Btop>B){
-					for(bxy*b=Btop-1;;b--){
-						*b=rbxy();
-						if(b==B)break;
-					}
+				for(bxy*b=Btop-1;;b--){
+					*b=rbxy();
+					if(b==B)break;
 				}
 			case 18:
 				Pe+=48;
@@ -239,7 +236,7 @@ int main(int argc,char**argv){
 			Pe=127;
 		}
 		mke();
-		printf("%s%d %d %.2x:%.2x  %d,%d %d,%d\t%d:%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1],(int)Px[0],(int)Py[0],(int)Px[1],(int)Py[1],mnT,moT);
+		printf("%s%d %d  %.2x:%.2x  %.2x:%.2x %d:%d:%d %d,%d %d,%d   %d:%d\n",T==MT?"==":"-",T,MT,pin[cpi],pin[cpi+1],Pe,Pi,Btop-B,Etop-E,PBtop-PB,(int)Px[0],(int)Py[0],(int)Px[1],(int)Py[1],mnT,moT);
 		if(Bor){
 			w8(Bor);
 			w8(37);
@@ -317,13 +314,16 @@ int main(int argc,char**argv){
 		}
 		if(PBtop>PB)w8(14);
 		for(bxy*b=PB;b<PBtop;b++){
+		pbagain:
 			b->x+=b->xd;
 			b->y+=b->yd;
 			if(b->y<0||b->x<0||b->x>128||b->y>256){
 				wbxy(*b);
 				w8(b-PB);
 				w8(20);
-				*b--=*--PBtop;
+				if(b==--PBtop)break;
+				*b=*PBtop;
+				goto pbagain;
 			}else(T==MT){
 				glColor(red+b->p);
 				glRect(b->x-1,b->y-1,b->x+1,b->y+1);
@@ -345,7 +345,7 @@ int main(int argc,char**argv){
 					w8(16);
 					Pe++;
 				}else(Ph[i]<1){
-					if(Btop>=B){
+					if(Btop>B){
 						for(bxy*b=B;b<Btop;b++)
 							wbxy(*b);
 						w16(Btop-B);

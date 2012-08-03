@@ -42,12 +42,15 @@ int rinpb(float x,float y,int r,int p){
 	r*=r;
 	int n=0;
 	for(bxy*b=PB;b<PBtop;b++)
+	pbagain:
 		if(dst2(x,y,b->x,b->y)<=r){
 			if(b->p!=p)n++;
 			wbxy(*b);
 			w8(b-PB);
 			w8(20);
-			*b--=*--PBtop;
+			if(b==--PBtop)break;
+			*b=*PBtop;
+			goto pbagain;
 		}
 	return n;
 }
@@ -89,6 +92,7 @@ int nearest(float x,float y){
 void eloop(){
 	if(Btop>B||Etop>E)w8(25);
 	for(bxy*b=B;b<Btop;b++){
+	bagain:;
 		float bx=b->x,by=b->y;
 		b->x+=b->xd;
 		b->y+=b->yd;
@@ -109,10 +113,13 @@ void eloop(){
 			wbxy(*b);
 			w16(b-B);
 			w8(21);
-			*b--=*--Btop;
+			if(b==--Btop)break;
+			*b=*Btop;
+			goto bagain;
 		}
 	}
 	for(obje*e=E;e<Etop;e++){
+	eagain:;
 		float r;
 		int et=!!(e->t&128);
 		switch(e->t&127){
@@ -281,7 +288,9 @@ void eloop(){
 			wobje(*e);
 			w8(e-E);
 			w8(9);
-			*e--=*--Etop;
+			if(e==--Etop)break;
+			*e=*Etop;
+			goto eagain;
 		}
 	}
 }
