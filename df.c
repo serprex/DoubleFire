@@ -384,58 +384,55 @@ int main(int argc,char**argv){
 					printf("\n");
 					continue;
 				}
+				assert(len>=5);
 				uint8_t p[len];
 				struct{uint16_t t;uint8_t c;}__attribute__((packed))*m=(void*)p;
 				nrecv(p,len);
-				if(*(uint16_t*)(p+2)*2<piT)
-					printf("wayback %d",*(uint16_t*)p*2,piT);
-				else(!(pin[*(uint16_t*)(p+2)*2-piT+!Pt]&128)){
-					if(m->t*2<piT||m->t*2+2>piT+pip)
-						printf("\n2mt out of range: %d %d %d\n",m->t*2,piT,piT+pip);
-					if(m->t>=moT){
-						moT=m->t;
-						printf("=%d",moT);
-						if(moT<=T){
-							mbuf=realloc(mbuf,mlen+=3);
-							*(uint16_t*)(mbuf+mlen-3)=moT;
-							mbuf[mlen-1]=pin[moT*2-piT+Pt];
-						}
+				if(m->t*2<piT||m->t*2+2>piT+pip)
+					printf(" !!t2 outofrange%d:%d:%d ",m->t*2,piT,piT+pip);
+				if(m->t>=moT){
+					moT=m->t;
+					printf(" %d",moT);
+					if(moT<T){
+						mbuf=realloc(mbuf,mlen+=3);
+						*(uint16_t*)(mbuf+mlen-3)=moT;
+						mbuf[mlen-1]=pin[moT*2-piT+Pt];
 					}
-					m=(void*)(p+2);
-					len-=2;
-					assert(len&&!(len%3));
-					do{
-						printf(" %d:%.2x",m->t,m->c);
-						if(m->t*2<piT){
-							printf("\np.mt*2<piT %d %d %d\n",m->t*2,piT,piT+pip);
-							goto nextm;
+				}
+				m=(void*)(p+2);
+				len-=2;
+				assert(!(len%3));
+				do{
+					printf(" %d:%.2x",m->t,m->c);
+					if(m->t*2<piT){
+						printf(" t2<piT%d:%d:%d",m->t*2,piT,piT+pip);
+						goto nextm;
+					}
+					if(m->t<mnT||(pin[m->t*2-piT+!Pt]&128)){
+						printf(" Already%d:%d",m->t,mnT);
+						goto nextm;
+					}
+					if(m->t*2+2-piT>pip){
+						int hip=pip;
+						pin=realloc(pin,pip=m->t*2+2-piT);
+						memset(pin+hip,m->c,pip-hip);
+					}
+					if(m->t<T&&(pin[m->t*2-piT+!Pt]&127)!=m->c){
+						for(int i=m->t*2+2-piT+!Pt;i<pip;i+=2){
+							if(pin[i]&128)break;
+							pin[i]=m->c;
 						}
-						if(m->t<mnT||(pin[m->t*2-piT+!Pt]&128)){
-							printf("\nAlready have %d:%d\n",m->t,mnT);
-							goto nextm;
-						}
-						if(m->t*2+2-piT>pip){
-							int hip=pip;
-							pin=realloc(pin,pip=m->t*2+2-piT);
-							memset(pin+hip,m->c,pip-hip);
-						}
-						if(m->t<T&&pin[m->t*2-piT+!Pt]!=m->c){
-							for(int i=m->t*2+2-piT+!Pt;i<pip;i+=2){
-								if(pin[i]&128)break;
-								pin[i]=m->c;
-							}
-							stepBack(T-m->t);
-						}
-						pin[m->t*2-piT+!Pt]=m->c|128;
-						if(m->t>mxT)mxT=m->t;
-						if(m->t==mnT)
-							do mnT++; while(mnT*2-piT<pip&&(pin[mnT*2-piT+!Pt]&128));
-					nextm:
-						len-=3;
-						m++;
-					}while(len);
-					printf("\n");
-				}else printf(" repeat %d\n",*(uint16_t*)p);
+						stepBack(T-m->t);
+					}
+					pin[m->t*2-piT+!Pt]=m->c|128;
+					if(m->t>mxT)mxT=m->t;
+					if(m->t==mnT)
+						do mnT++; while(mnT*2-piT<pip&&(pin[mnT*2-piT+!Pt]&128));
+				nextm:
+					len-=3;
+					m++;
+				}while(len);
+				printf("\n");
 			}else{
 				uint8_t in;
 				if(nrecv(&in,1)==-1)return 0;
