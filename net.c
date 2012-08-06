@@ -12,7 +12,8 @@ struct timeval timeout={};
 int psize(){
 	u_long r;
 	ioctlsocket(udp,FIONREAD,&r);
-	return r;
+	uint8_t b[r];
+	return recv(udp,b,r,MSG_PEEK);
 }
 #else
 #include <sys/unistd.h>
