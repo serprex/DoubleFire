@@ -10,9 +10,9 @@ uint16_t T,MT;
 static uint16_t mnT,mxT,moT;
 const uint8_t col[13]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
-uint8_t*pin,Pt,Pf[2],Pi;
+uint8_t*pin,Pt,Pf[2],Pi,*mbuf;
 int8_t Pe=127;
-int Ph[2];
+int Ph[2],mlen;
 uint16_t Php[2];
 float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
@@ -119,6 +119,7 @@ void stepBack(int n){
 			}
 			}
 		}
+		assert(T);
 		T--;
 		crw--;
 		cpi-=2;
@@ -173,6 +174,7 @@ int main(int argc,char**argv){
 		if(argc==3)Pt=atoi(argv[2]);
 		isudp=netinit(argv[1]);
 	}
+	if(isudp)mbuf=malloc(mlen=5);
 	for(;;){
 		int shift=min(mnT,T)-rwT;
 		if(shift>0){
@@ -200,20 +202,12 @@ int main(int argc,char**argv){
 		if(T==MT){
 			sprBeginFrame();
 			if(isudp){
-				int len=3;
-				uint8_t pcm[6];
-				*(uint16_t*)pcm=T;
-				pcm[2]=pin[cpi+Pt]=sprInput();
-				if(!(T&3)&&mxT-mnT>4){
-					printf("requesting %d\n",mnT);
-					len+=3;
-					*(uint16_t*)(pcm+3)=mnT;
-					pcm[5]=pin[cpi+!Pt];
-				}else(!(T&63)){
-					len+=2;
-					*(uint16_t*)(pcm+3)=mnT;
-				}
-				nsend(pcm,len);
+				*(uint16_t*)(mbuf)=mnT;
+				*(uint16_t*)(mbuf+2)=T;
+				mbuf[4]=pin[cpi+Pt]=sprInput();
+				nsend(mbuf,mlen);
+				printf("sent %d\n",mlen);
+				mlen=5;
 			}else{
 				pin[cpi+Pt]=sprInput();
 				nsend(pin+cpi+Pt,1);
@@ -379,58 +373,69 @@ int main(int argc,char**argv){
 		T++;
 		while(any()){
 			if(isudp){
-				struct{uint16_t mt;uint8_t in;uint16_t rt;uint8_t rin;}__attribute__((packed))p;
-				int len=nrecv(&p,6);
-				if(!len)return 0;
-				else(len==1&&++welt&1)nsend(&Pt,1);
-				else(len==2){
-					if(p.mt*2<piT||p.mt*2+2>piT+pip)
-						printf("2mt out of range: %d %d %d\n",p.mt*2,piT,piT+pip);
-					else{
-						pin[p.mt*2-piT+!Pt]|=128;
-						printf("udp2: %d",p.mt);
-						goto updateTs;
-					}
-				}else(len>=3){
-					if(p.mt*2<piT){
-						printf("%d p.mt*2<piT %d %d %d\n",len,p.mt*2,piT,piT+pip);
-						continue;
-					}
-					printf("udp%d: %d %.2x",len,p.mt,p.in);
-					if(p.mt*2+2-piT>pip){
-						int hip=pip;
-						pin=realloc(pin,pip=p.mt*2+2-piT);
-						memset(pin+hip,p.in,pip-hip);
-					}
-					if(!(pin[p.mt*2-piT+!Pt]&128)){
-						if(len>=5){
-							printf(" %d",p.rt);
-							if(p.rt>=moT){
-								moT=p.rt;
-								if(len==6){
-									if(p.rin!=pin[p.rt*2-piT+Pt]){
-										printf(" %.2x",p.rin);
-										p.rin=pin[p.rt*2-piT+Pt];
-										nsend(&p.rt,3);
-									}else nsend(&p.rt,2);
-								}
-							}
-						}
-						if(p.mt<T&&pin[p.mt*2-piT+!Pt]!=p.in){
-							for(int i=p.mt*2+2-piT+!Pt;i<pip;i+=2){
-								if(pin[i]&128)break;
-								pin[i]=p.in;
-							}
-							stepBack(T-p.mt);
-						}
-						pin[p.mt*2-piT+!Pt]=p.in|128;
-					updateTs:
-						if(p.mt>mxT)mxT=p.mt;
-						if(p.mt==mnT)
-							do mnT++; while(mnT*2-piT<pip&&(pin[mnT*2-piT+!Pt]&128));
-					}
+				int len=psize();
+				printf("udp%d",len);
+				if(!len){
 					printf("\n");
+					return 0;
+				}else(len==1){
+					if(++welt&1)nsend(&Pt,1);
+					nrecv(0,0);
+					printf("\n");
+					continue;
 				}
+				uint8_t p[len];
+				struct{uint16_t t;uint8_t c;}__attribute__((packed))*m=(void*)p;
+				nrecv(p,len);
+				if(*(uint16_t*)(p+2)*2<piT)
+					printf("wayback %d",*(uint16_t*)p*2,piT);
+				else(!(pin[*(uint16_t*)(p+2)*2-piT+!Pt]&128)){
+					if(m->t*2<piT||m->t*2+2>piT+pip)
+						printf("\n2mt out of range: %d %d %d\n",m->t*2,piT,piT+pip);
+					if(m->t>=moT){
+						moT=m->t;
+						printf("=%d",moT);
+						if(moT<=T){
+							mbuf=realloc(mbuf,mlen+=3);
+							*(uint16_t*)(mbuf+mlen-3)=moT;
+							mbuf[mlen-1]=pin[moT*2-piT+Pt];
+						}
+					}
+					m=(void*)(p+2);
+					len-=2;
+					assert(len&&!(len%3));
+					do{
+						printf(" %d:%.2x",m->t,m->c);
+						if(m->t*2<piT){
+							printf("\np.mt*2<piT %d %d %d\n",m->t*2,piT,piT+pip);
+							goto nextm;
+						}
+						if(m->t<mnT||(pin[m->t*2-piT+!Pt]&128)){
+							printf("\nAlready have %d:%d\n",m->t,mnT);
+							goto nextm;
+						}
+						if(m->t*2+2-piT>pip){
+							int hip=pip;
+							pin=realloc(pin,pip=m->t*2+2-piT);
+							memset(pin+hip,m->c,pip-hip);
+						}
+						if(m->t<T&&pin[m->t*2-piT+!Pt]!=m->c){
+							for(int i=m->t*2+2-piT+!Pt;i<pip;i+=2){
+								if(pin[i]&128)break;
+								pin[i]=m->c;
+							}
+							stepBack(T-m->t);
+						}
+						pin[m->t*2-piT+!Pt]=m->c|128;
+						if(m->t>mxT)mxT=m->t;
+						if(m->t==mnT)
+							do mnT++; while(mnT*2-piT<pip&&(pin[mnT*2-piT+!Pt]&128));
+					nextm:
+						len-=3;
+						m++;
+					}while(len);
+					printf("\n");
+				}else printf(" repeat %d\n",*(uint16_t*)p);
 			}else{
 				uint8_t in;
 				if(nrecv(&in,1)==-1)return 0;

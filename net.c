@@ -9,15 +9,26 @@ struct timeval timeout={};
 	FD_SET(udp,&fds);
     return select(0,&fds,0,0,&timeout);
 }
+int psize(){
+	u_long r;
+	ioctlsocket(udp,FIONREAD,&r);
+	return r;
+}
 #else
 #include <sys/unistd.h>
 #include <sys/socket.h>
 #include <sys/poll.h>
+#include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 static struct pollfd pfd={.events=POLLIN};
 int any(){
 	return poll(&pfd,1,0);
+}
+int psize(){
+	int r;
+	ioctl(udp,FIONREAD,&r);
+	return r;
 }
 #endif
 int nsend(void*p,int n){
@@ -62,18 +73,17 @@ int netinit(char*ipstr){
 		int one=1;
 		setsockopt(udp,IPPROTO_TCP,TCP_NODELAY,(char*)&one,sizeof(int));
 		if(ipstr){
-			recv(udp,&Pt,1,0);
+			nrecv(&Pt,1);
 			Pt^=1;
-		}else send(udp,&Pt,1,0);
+		}else nsend(&Pt,1);
 		return 0;
 	}
 	notex();
 	for(;;){
-		uint8_t pt=Pt,*ptp=ipstr?&Pt:&pt;
-		nsend(ptp,1);
-		if(any()){
-			nrecv(ptp,1);
-			*ptp^=1;
+		uint8_t pt[]={Pt};
+		nsend(pt,1);
+		if(any()&&nrecv(pt,2)==1){
+			if(ipstr)Pt=!pt[0];
 			break;
 		}
 		sprInput();
