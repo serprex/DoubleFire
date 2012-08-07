@@ -94,10 +94,7 @@ void stepBack(int n){
 				e->yd=rfloat();
 				e->xd=rfloat();
 			}
-			case(31){
-				obje*e=E+r8();
-				e->y=r16();
-			}
+			case(31)E[r8()].y+=2;
 			case(32 ... 33)Lzo=a-32;
 			case(34){
 				obje*e=E+r8();
@@ -206,7 +203,6 @@ int main(int argc,char**argv){
 				*(uint16_t*)(mbuf+2)=T;
 				mbuf[4]=pin[cpi+Pt]=sprInput();
 				nsend(mbuf,mlen);
-				printf("sent %d\n",mlen);
 				mlen=5;
 			}else{
 				pin[cpi+Pt]=sprInput();
@@ -420,7 +416,7 @@ int main(int argc,char**argv){
 					if(m->t<T&&(pin[m->t*2-piT+!Pt]&127)!=m->c){
 						for(int i=m->t*2+2-piT+!Pt;i<pip;i+=2){
 							if(pin[i]&128)break;
-							pin[i]=m->c;
+							pin[i]=m->c&48;
 						}
 						stepBack(T-m->t);
 					}

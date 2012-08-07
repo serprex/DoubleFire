@@ -12,7 +12,7 @@ typedef enum{
 }oid;
 extern obje E[64],*Etop;
 extern bxy B[8192],*Btop,PB[256],*PBtop;
-void mkpb(uint8_t p,float x,float y,float xd,float yd);
+void mkpb(int p,float x,float y,float xd,float yd);
 void mkb(int p,float x,float y,float xd,float yd);
 void mkbd(int p,float x,float y,float v,float d);
 void mkbxy(int p,float x,float y,float xx,float yy,float v);

@@ -1,7 +1,7 @@
 #include "df.h"
 obje E[64],*Etop=E;
 bxy B[8192],*Btop=B,PB[256],*PBtop=PB;
-void mkpb(uint8_t p,float x,float y,float xd,float yd){
+void mkpb(int p,float x,float y,float xd,float yd){
 	w8(19);
 	bxy*b=PBtop++;
 	b->p=p;
@@ -38,13 +38,13 @@ void xLz(int c,float x,float y,float d){
 	for(int i=0;i<2;i++)
 		if(dst(x,y,Px[i],Py[i])<c&&fabsf(rnorm(d+dir(x,y,Px[i],Py[i])))<M_PI/64)Ph[i]--;
 }
-int rinpb(float x,float y,int r,int p){
+int rinpb(float x,float y,int r){
 	r*=r;
 	int n=0;
 	for(bxy*b=PB;b<PBtop;b++)
 	pbagain:
 		if(dst2(x,y,b->x,b->y)<=r){
-			if(b->p!=p)n++;
+			n+=b->p?256:1;
 			wbxy(*b);
 			w8(b-PB);
 			w8(20);
@@ -60,8 +60,15 @@ int rinlz(float x,float y,int r){
 int rinbo(float x,float y,int r){
 	return Bor&&dst2(x,y,Box,Boy)<=sqr(r+Bor);
 }
-int rdmg(float x,float y,int r,int p){
-	return rinpb(x,y,r,p)+(!p?0:rinbo(x,y,r))+(p==1?0:rinlz(x,y,r));
+int rdmg(float x,float y,int r){
+	int p=rinpb(x,y,r);
+	return (p&255)+(p>>8)+rinbo(x,y,r)+rinlz(x,y,r);
+}
+int rdmg2(float x,float y,int r){
+	return rinpb(x,y,r)+rinbo(x,y,r)+rinlz(x,y,r)*256;
+}
+int getb(int x,int i){
+	return i?x>>8:x&255;
 }
 float dtop(int p,float x,float y){
 	return dst2(x,y,Px[p],Py[p]);
@@ -137,7 +144,7 @@ void eloop(){
 			if(!(T-e->c&7)||!(T-e->c&3))
 				mkbd(e->c,e->x+cos(e->d)*r*2,e->y-sin(e->d)*r*2,6,e->d);
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
-			else(e->h<4||rdmg(e->x,e->y,e->h*3/2,2)){
+			else(e->h<4||rdmg(e->x,e->y,e->h*3/2)){
 				w8(e-E);
 				w8(38);
 				e->h--;
@@ -154,7 +161,7 @@ void eloop(){
 				rndcol();
 				glCirc(e->x,e->y,min(r,8));
 			}
-			et=e->h<6?4:rdmg(e->x,e->y,r,2);
+			et=e->h<6?4:rdmg(e->x,e->y,r);
 			if(et){
 				w8(e->h);
 				w8(e-E);
@@ -171,27 +178,27 @@ void eloop(){
 				xLz(min(T-e->c,120+e->h),e->x,e->y,i?e->yd:e->xd);
 			if(e->h<-120)goto kille;
 		case(EB1)
-			r=e->h;
-			w16(e->y);
-			w8(e-E);
-			w8(31);
-			e->y-=e->y>192?2:0;
-			if(T==MT){
+			if(e->y>192){
+				w8(e-E);
+				w8(31);
+				e->y-=2;
+			}
+			if(T==MT)
 				for(double a=0;a<M_PI;a+=M_PI/48){
 					double aa=a+T/256.;
 					rndrndcol();
-					glLineC(e->x+cos(aa)*r,e->y+sin(aa)*r,e->x-cos(aa)*r,e->y-sin(aa)*r,red+!(e->h&8));
+					float xd=cos(aa)*e->h,yd=sin(aa)*e->h;
+					glLineC(e->x+xd,e->y+yd,e->x-xd,e->y-yd,red+!(e->h&8));
 				}
-			}
 			mkbxy(e->c,e->x,e->y,Px[0],Py[0],4);
 			mkbxy(e->c+1,e->x,e->y,Px[1],Py[1],4);
 			mkbxy(e->c+2,e->x,e->y,Px[!(e->h&8)],Py[!(e->h&8)],1);
-			if((e->h&7)!=7&&rdmg(e->x,e->y,e->h,!(e->h&8))){
-				w8(e->h);
+			et=rdmg2(e->x,e->y,e->h);
+			if((e->h&7)!=7&&getb(et,e->h&8)){
+				w8(e->h++);
 				w8(e-E);
 				w8(29);
-				e->h++;
-			}else(rdmg(e->x,e->y,e->h,!!(e->h&8))||e->h<7){
+			}else(getb(et,!(e->h&8))||e->h<7){
 				w8(e-E);
 				w8(38);
 				if(!--e->h)goto kille;
@@ -202,7 +209,7 @@ void eloop(){
 					int xx=28+x*(e->a[18]/2-e->a[19]),yy=92+y*(e->a[18]/2-e->a[19]),xy=x+y*4+1;
 					if((!(T+x+y*3&15))&&(x==0&&y==0||x==3&&y==0||x==3&&y==3||x==0&&y==3))
 						mkbxy(e->c+x+y*4,xx,yy,Px[e->a[xy]],Py[e->a[xy]],1);
-					if(rdmg(xx,yy,8,!e->a[xy])){
+					if(getb(rdmg(xx,yy,8),!e->a[xy])){
 						w8(xy);
 						w8(e-E);
 						w8(34);
@@ -248,7 +255,7 @@ void eloop(){
 					glLine(e->x+cos(e->d+i*M_PI*2/3)*(32-e->h*3),e->y-sin(e->d+i*M_PI*2/3)*(32-e->h*3),e->x+cos(e->d+i*M_PI*2/3)*32,e->y-sin(e->d+i*M_PI*2/3)*32);
 			}
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
-			else(e->h<8||rdmg(e->x,e->y,e->h,2)){
+			else(e->h<8||rdmg(e->x,e->y,e->h)){
 				w8(e-E);
 				w8(38);
 				e->h--;
@@ -276,7 +283,7 @@ void eloop(){
 				glColor(et==2?wht:red+et);
 				glCirc(e->x,e->y,min(e->h,T-e->c));
 			}
-			if(rdmg(e->x,e->y,16,et)){
+			if(rdmg2(e->x,e->y,16)&(et==2?0xFFFF:et==1?0x00FF:0xFF00)){
 				w8(e-E);
 				w8(38);
 				e->h--;
