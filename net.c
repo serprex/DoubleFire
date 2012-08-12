@@ -29,7 +29,12 @@ int any(){
 int psize(){
 	int r;
 	ioctl(udp,FIONREAD,&r);
+	#ifdef __APPLE__
+	uint8_t b[r];
+	return recv(udp,b,r,MSG_PEEK);
+	#else
 	return r;
+	#endif
 }
 #endif
 int nsend(void*p,int n){
@@ -41,7 +46,7 @@ int nrecv(void*p,int n){
 int netinit(char*ipstr){
 	#ifdef _WIN32
 	WSADATA WsaData;
-    WSAStartup(MAKEWORD(2,2),&WsaData);
+	WSAStartup(MAKEWORD(2,2),&WsaData);
 	#endif
 	int type;
 	if(ipstr&&*ipstr=='t'){
