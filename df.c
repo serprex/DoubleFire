@@ -39,16 +39,8 @@ void stepBack(int n){
 				}
 			case(15)Pi++;
 			case(16)Pe--;
-			case(17)
-				Btop=B+r16();
-				for(bxy*b=Btop-1;;b--){
-					*b=rbxy();
-					if(b==B)break;
-				}
-			case 18:
-				Pe+=48;
-				Pi=0;
-			case(19)PBtop--;
+			case(17)PBtop--;
+			case(18 ... 19)E[r8()].a[a]--;
 			case(20){
 				bxy*b=PB+r8();
 				*PBtop++=*b;
@@ -105,7 +97,15 @@ void stepBack(int n){
 				if(y<3)e->a[xy+4]^=1;
 				if(y>0)e->a[xy-4]^=1;
 			}
-			case(35 ... 36)E[r8()].a[a-17]--;
+			case(35)
+				Btop=B+r16();
+				for(bxy*b=Btop-1;;b--){
+					*b=rbxy();
+					if(b==B)break;
+				}
+			case 36:
+				Pe+=48;
+				Pi=0;
 			case(37)Bor=r8();
 			case(38)E[r8()].h++;
 			case(40)Pe++;
@@ -229,7 +229,7 @@ int main(int argc,char**argv){
 			if(++Bor>24)Bor=0;
 		}
 		for(int i=0;i<2;i++){
-			float Pxx=(gD(pin[cpi+i])-gA(pin[cpi+i]))*1.5,Pyy=(gS(pin[cpi+i])-gW(pin[cpi+i]))*1.5;
+			float Pxx=(gD(pin[cpi+i])-gA(pin[cpi+i]))*2,Pyy=(gS(pin[cpi+i])-gW(pin[cpi+i]))*2;
 			if(Pxx&&Pyy){
 				Pxx*=M_SQRT2;
 				Pyy*=M_SQRT2;
@@ -335,9 +335,9 @@ int main(int argc,char**argv){
 						for(bxy*b=B;b<Btop;b++)
 							wbxy(*b);
 						w16(Btop-B);
-						w8(17);
+						w8(35);
 						Btop=B;
-					}else w8(18);
+					}else w8(36);
 					Pe-=48;
 					Pi=64;
 					break;
@@ -390,12 +390,15 @@ int main(int argc,char**argv){
 					moT=m->t;
 					printf(" %d",moT);
 					if(moT<T){
+						for(int i=2;i<mlen;i+=3)
+							if(*(uint16_t*)(mbuf+i)==moT)
+								goto rereq;
 						mbuf=realloc(mbuf,mlen+=3);
 						*(uint16_t*)(mbuf+mlen-3)=moT;
 						mbuf[mlen-1]=pin[moT*2-piT+Pt];
 					}
 				}
-				m=(void*)(p+2);
+				rereq:m=(void*)(p+2);
 				len-=2;
 				assert(!(len%3));
 				do{

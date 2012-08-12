@@ -4,7 +4,7 @@ O=tgen.o spr.o lv.o net.o foe.o df.o
 all: ${O}
 	${CC} ${O} -o DoubleFire!! -lglfw -lGL -lm
 mingw:
-	i486-mingw32-gcc ${CFLAGS} ${O:.o=.c} -o DoubleFire!!.exe -lglfw -lopengl32 -lm -lws2_32
+	i486-mingw32-gcc ${CFLAGS} ${O:.o=.c} -msse2 -o DoubleFire!!.exe -lglfw -lopengl32 -lm -lws2_32
 clean:
 	rm -rf *.o
 spr: spr/*

@@ -2,7 +2,7 @@
 obje E[64],*Etop=E;
 bxy B[8192],*Btop=B,PB[256],*PBtop=PB;
 void mkpb(int p,float x,float y,float xd,float yd){
-	w8(19);
+	w8(17);
 	bxy*b=PBtop++;
 	b->p=p;
 	b->x=x;
@@ -209,7 +209,7 @@ void eloop(){
 					int xx=28+x*(e->a[18]/2-e->a[19]),yy=92+y*(e->a[18]/2-e->a[19]),xy=x+y*4+1;
 					if((!(T+x+y*3&15))&&(x==0&&y==0||x==3&&y==0||x==3&&y==3||x==0&&y==3))
 						mkbxy(e->c+x+y*4,xx,yy,Px[e->a[xy]],Py[e->a[xy]],1);
-					if(getb(rdmg(xx,yy,8),!e->a[xy])){
+					if(getb(rdmg2(xx,yy,8),e->a[xy])){
 						w8(xy);
 						w8(e-E);
 						w8(34);
@@ -233,12 +233,12 @@ void eloop(){
 			if(et){
 				if(e->a[18]<48){
 					w8(e-E);
-					w8(35);
+					w8(18);
 					e->a[18]++;
 				}
 			}else{
 				w8(e-E);
-				w8(36);
+				w8(19);
 				if(++e->a[19]==24)goto kille;
 			}
 		case(EROT)

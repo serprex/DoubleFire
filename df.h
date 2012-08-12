@@ -4,6 +4,11 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
+#define DTOF(x) ((uint16_t)((x)*128))
+#define ITOF(x) ((x)<<7)
+#define FTOI(x) ((x)>>7)
+#define INCF(x) ((x)+=128)
+#define DECF(x) ((x)-=128)
 typedef struct{
 	uint16_t p;
 	float x,y,xd,yd;
