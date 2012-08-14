@@ -4,11 +4,6 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
-#define DTOF(x) ((uint16_t)((x)*128))
-#define ITOF(x) ((x)<<7)
-#define FTOI(x) ((x)>>7)
-#define INCF(x) ((x)+=128)
-#define DECF(x) ((x)-=128)
 typedef struct{
 	uint16_t p;
 	float x,y,xd,yd;
@@ -37,7 +32,13 @@ extern colt red,blu,wht,shr,shb,blk;
 #define min(x,y) ({__typeof__(x) _x=(x);__typeof__(y) _y=(y);_x<_y?_x:_y;})
 #define dst2(x1,y1,x2,y2) (sqr((x1)-(x2))+sqr((y1)-(y2)))
 #define dst(x1,y1,x2,y2) sqrt(dst2(x1,y1,x2,y2))
-#define dir(x1,y1,x2,y2) (M_PI-atan2((y2)-(y1),(x1)-(x2)))
+#define dir(x1,y1,x2,y2) atan2((y2)-(y1),(x2)-(x1))
+#define gZ(x) (!!((x)&1))
+#define gX(x) (!!((x)&2))
+#define gD(x) (!!((x)&4))
+#define gA(x) (!!((x)&8))
+#define gS(x) (!!((x)&16))
+#define gW(x) (!!((x)&32))
 #ifdef FIRE
 typedef struct{
 	uint8_t*p;

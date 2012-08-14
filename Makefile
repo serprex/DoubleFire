@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS+=-g -std=gnu11 -O2 -ffast-math -pipe
+CFLAGS+=-g -std=gnu11 -O2 -pipe
 O=tgen.o spr.o lv.o net.o foe.o df.o
 all: ${O}
 	${CC} ${O} -o DoubleFire!! -lglfw -lGL -lm

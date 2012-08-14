@@ -103,7 +103,7 @@ static struct spr{
 	{0,0,7,8},
 	{0,8,7,8},
 };
-static uint8_t rcol[3];
+static uint8_t rcol[4];
 static GLuint Stx;
 void notex(){
 	glBindTexture(GL_TEXTURE_2D,0);
@@ -112,13 +112,13 @@ void retex(){
 	glBindTexture(GL_TEXTURE_2D,Stx);
 }
 void drawRect_(int x,int y,int w,int h,float tx,float ty,float tw,float th){
-	glTexCoord2f(tx,ty);
-	glVertex2i(x,y);
-	glTexCoord2f(tx+tw,ty);
-	glVertex2i(x+w,y);
-	glTexCoord2f(tx+tw,ty+th);
-	glVertex2i(x+w,y+h);
 	glTexCoord2f(tx,ty+th);
+	glVertex2i(x,y);
+	glTexCoord2f(tx+tw,ty+th);
+	glVertex2i(x+w,y);
+	glTexCoord2f(tx+tw,ty);
+	glVertex2i(x+w,y+h);
+	glTexCoord2f(tx,ty);
 	glVertex2i(x,y+h);
 }
 void drawRect(int x,int y,int w,int h,float tx,float ty,float tw,float th){
@@ -131,7 +131,7 @@ void drawSpr_(sprid s,int x,int y,int f,int hv){
 	drawRect(h?x:x+spr[s].w,v?y:y+spr[s].h,spr[s].w*(h?1:-1),spr[s].h*(v?1:-1),(spr[s].x+spr[s].w*f)/(float)SW,spr[s].y/(float)SH,spr[s].w/(float)SW,spr[s].h/(float)SH);
 }
 void drawSpr(sprid s,int x,int y,int f,const uint8_t*c){
-	glColor3ub(rand(),rand(),rand());
+	rndcol();
 	drawSpr_(s,x,y,f*2+1,0);
 	glColor3ubv(c);
 	drawSpr_(s,x,y,f*2,0);
@@ -189,7 +189,7 @@ void glLzr(){
 	glBegin(GL_QUAD_STRIP);
 	for(int i=0;i<32;i++){
 		glColor3ub(255-i*8,255-i*8,255-i*8);
-		glVertex2f(Lzr[i][0],0);
+		glVertex2f(Lzr[i][0],256);
 		glVertex2fv(Lzr[i]);
 	}
 	glEnd();
@@ -201,7 +201,8 @@ void rndcol(){
 	glColor3ubv(rcol);
 }
 void rndrndcol(){
-	glColor3ub(rand(),rand(),rand());
+	uint32_t x=rnd();
+	glColor3ubv((uint8_t*)&x);
 }
 void enableBlend(){
 	glEnable(GL_BLEND);
@@ -209,11 +210,15 @@ void enableBlend(){
 void disableBlend(){
 	glDisable(GL_BLEND);
 }
+uint32_t rnd(){
+	static uint32_t v=0x5A5E4943;
+	return v=36969*(v&65535)+(v>>16);
+}
 void sprInit(){
 	glfwInit();
 	glfwDisable(GLFW_AUTO_POLL_EVENTS);
 	glfwOpenWindow(320,512,0,0,0,0,0,0,GLFW_WINDOW);
-	glOrtho(0,160,256,0,1,-1);
+	glOrtho(0,160,0,256,1,-1);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE,GL_ONE);
@@ -223,9 +228,48 @@ void sprInit(){
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D,0,SF,SW,SH,0,SF,GL_UNSIGNED_BYTE,S);
 }
+int sprMenu(){
+	char ipstr[17],*ipstrp=ipstr,lch;
+	do{
+		int in=sprInput();
+		if(gA(in))Pt=0;
+		else(gD(in))Pt=1;
+		char llch=lch;
+		if(glfwGetKey(GLFW_KEY_BACKSPACE)&&ipstrp>ipstr)
+			ipstrp--;
+		else(ipstrp-ipstr<17){
+			if(glfwGetKey('T'))lch=*ipstrp++='t';
+			else(glfwGetKey('.'))lch=*ipstrp++='.';
+			else{
+				for(int i='0';i<='9';i++)
+					if(glfwGetKey(i)){
+						lch=*ipstrp++=i;
+						goto lchset;
+					}
+				lch=0;
+			}
+		}
+	lchset:
+		if(lch&&llch==lch)ipstrp--;
+		sprBeginFrame();
+		notex();
+		rndcol();
+		glRect(0,0,160,256);
+		int x=0;
+		for(char*p=ipstr;p<ipstrp;p++){
+			rndrndcol();
+			tfChar(x,32,*p);
+			x+=6;
+		}
+		retex();
+		drawSpr(Pt?Ika:Kae,16,16,0,Pt?shb:shr);
+		sprEndFrame(1./20);
+	}while(!glfwGetKey(GLFW_KEY_ENTER));
+	*ipstrp=0;
+	return netinit(ipstr);
+}
 void sprBeginFrame(){
-	for(int i=0;i<3;i++)
-		rcol[i]=rand();
+	*(uint32_t*)rcol=rnd();
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 void sprEndFrame(float fps){
@@ -235,7 +279,6 @@ void sprEndFrame(float fps){
 	else printf("sleep %f\n",gT);
 	glfwSetTime(0);
 }
-int sprKey(int k){return glfwGetKey(k);}
 int sprInput(){
 	glfwPollEvents();
 	if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){

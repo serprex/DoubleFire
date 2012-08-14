@@ -20,23 +20,13 @@ void mkb(int p,float x,float y,float xd,float yd){
 	b->yd=yd;
 }
 void mkbd(int p,float x,float y,float v,float d){
-	mkb(p,x,y,cos(d)*v,-sin(d)*v);
+	mkb(p,x,y,cos(d)*v,sin(d)*v);
 }
 void mkbxy(int p,float x,float y,float xx,float yy,float v){
 	xx-=x;
 	yy-=y;
 	float xy=sqrt(xx*xx+yy*yy);
 	if(xy)mkb(p,x,y,xx*v/xy,yy*v/xy);
-}
-static float rnorm(float a){
-	a=fmodf(a,M_PI*2);
-	return a>M_PI?a-M_PI*2:a;
-}
-void xLz(int c,float x,float y,float d){
-	if(T==MT)
-		glTriangle(x,y,x+cos(d+M_PI/64)*c,y-sin(d+M_PI/64)*c,x+cos(d-M_PI/64)*c,y-sin(d-M_PI/64)*c);
-	for(int i=0;i<2;i++)
-		if(dst(x,y,Px[i],Py[i])<c&&fabsf(rnorm(d+dir(x,y,Px[i],Py[i])))<M_PI/64)Ph[i]--;
 }
 int rinpb(float x,float y,int r){
 	r*=r;
@@ -76,10 +66,20 @@ float dtop(int p,float x,float y){
 float btop(int p,bxy*b){
 	return dtop(p,b->x,b->y);
 }
+static float rnorm(float a){
+	a=fmodf(a,M_PI*2);
+	return a>M_PI?a-M_PI*2:a;
+}
+static void xLz(float c,float x,float y,float d){
+	if(T==MT)
+		glTriangle(x,y,x+cos(d+M_PI/64)*c,y+sin(d+M_PI/64)*c,x+cos(d-M_PI/64)*c,y+sin(d-M_PI/64)*c);
+	c*=c;
+	for(int i=0;i<2;i++)
+		if(dst2(x,y,Px[i],Py[i])<c&&fabsf(rnorm(d-dir(x,y,Px[i],Py[i])))<M_PI/64)Ph[i]--;
+}
 float rrot(float a,float b,float m){
-	b=rnorm(b+a);
-	if(fabsf(b)<=m)return a-b;
-	return b>0?a-m:a+m;
+	float c=rnorm(b-a);
+	return fabsf(c)<=m?b:c>0?a+m:a-m;
 }
 void rrota(float*a,float b,float m){
 	*a=rrot(*a,b,m);
@@ -93,8 +93,11 @@ void erotxy(obje*e,float x,float y,float m){
 	w8(28);
 	rrotxy(&e->d,e->x,e->y,x,y,m);
 }
-int nearest(float x,float y){
-	return dst2(x,y,Px[0],Py[0])>dst2(x,y,Px[1],Py[1]);
+int nerdest(obje*e){
+	return fabsf(rnorm(e->d-dir(e->x,e->y,Px[0],Py[0])))>fabsf(rnorm(e->d-dir(e->x,e->y,Px[1],Py[1])));
+}
+int nearest(obje*e){
+	return dst2(e->x,e->y,Px[0],Py[0])>dst2(e->x,e->y,Px[1],Py[1]);
 }
 void eloop(){
 	if(Btop>B||Etop>E)w8(25);
@@ -131,36 +134,27 @@ void eloop(){
 		int et=!!(e->t&128);
 		switch(e->t&127){
 		case(ECAN)
-			if(T==MT){
-				float r=min(T-e->c,e->h);
-				glColor(wht);
-				glLine(e->x,e->y,e->x+cos(e->d)*r*2,e->y-sin(e->d)*r*2);
-				glColor(red+et);
-				glCirc(e->x,e->y,r);
-			}
 			e->x+=e->xd;
 			e->y+=e->yd;
+			et=nerdest(e);
 			erotxy(e,Px[et],Py[et],M_PI/16);
 			if(!(T-e->c&7)||!(T-e->c&3))
-				mkbd(e->c,e->x+cos(e->d)*r*2,e->y-sin(e->d)*r*2,6,e->d);
+				mkbd(e->c,e->x+cos(e->d)*r*2,e->y+sin(e->d)*r*2,6,e->d);
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 			else(e->h<4||rdmg(e->x,e->y,e->h*3/2)){
 				w8(e-E);
 				w8(38);
 				e->h--;
 			}
+			if(T==MT){
+				float r=min(T-e->c,e->h);
+				glColor(wht);
+				glLine(e->x,e->y,e->x+cos(e->d)*r*2,e->y+sin(e->d)*r*2);
+				glColor(red+et);
+				glCirc(e->x,e->y,r);
+			}
 		case(ETAR)
 			r=min(T-e->c,abs(e->h));
-			if(T==MT){
-				glColor(wht);
-				glCirc(e->x,e->y,r);
-				rndcol();
-				glCirc(e->x,e->y,min(r,24));
-				glColor(wht);
-				glCirc(e->x,e->y,min(r,16));
-				rndcol();
-				glCirc(e->x,e->y,min(r,8));
-			}
 			et=e->h<6?4:rdmg(e->x,e->y,r);
 			if(et){
 				w8(e->h);
@@ -174,22 +168,25 @@ void eloop(){
 			w8(30);
 			rrotxy(&e->xd,e->x,e->y,Px[0],Py[0],M_PI/64);
 			rrotxy(&e->yd,e->x,e->y,Px[1],Py[1],M_PI/64);
+			if(e->h<-120)goto kille;
+			if(T==MT){
+				glColor(wht);
+				glCirc(e->x,e->y,r);
+				rndcol();
+				glCirc(e->x,e->y,min(r,24));
+				glColor(wht);
+				glCirc(e->x,e->y,min(r,16));
+				rndcol();
+				glCirc(e->x,e->y,min(r,8));
+			}
 			for(int i=0;i<2;i++)
 				xLz(min(T-e->c,120+e->h),e->x,e->y,i?e->yd:e->xd);
-			if(e->h<-120)goto kille;
 		case(EB1)
 			if(e->y>192){
 				w8(e-E);
 				w8(31);
-				e->y-=2;
+				e->y+=2;
 			}
-			if(T==MT)
-				for(double a=0;a<M_PI;a+=M_PI/48){
-					double aa=a+T/256.;
-					rndrndcol();
-					float xd=cos(aa)*e->h,yd=sin(aa)*e->h;
-					glLineC(e->x+xd,e->y+yd,e->x-xd,e->y-yd,red+!(e->h&8));
-				}
 			mkbxy(e->c,e->x,e->y,Px[0],Py[0],4);
 			mkbxy(e->c+1,e->x,e->y,Px[1],Py[1],4);
 			mkbxy(e->c+2,e->x,e->y,Px[!(e->h&8)],Py[!(e->h&8)],1);
@@ -203,6 +200,13 @@ void eloop(){
 				w8(38);
 				if(!--e->h)goto kille;
 			}
+			if(T==MT)
+				for(double a=0;a<M_PI;a+=M_PI/48){
+					double aa=a+T/256.;
+					rndrndcol();
+					float xd=cos(aa)*e->h,yd=sin(aa)*e->h;
+					glLineC(e->x+xd,e->y+yd,e->x-xd,e->y-yd,red+!(e->h&8));
+				}
 		case(EB2)
 			for(int y=0;y<4;y++)
 				for(int x=0;x<4;x++){
@@ -246,22 +250,22 @@ void eloop(){
 			e->y+=e->yd;
 			e->d+=M_PI/(et?128:-128);
 			for(int i=0;i<3;i++)
-				mkbd(e->c,e->x+cos(e->d+i*M_PI*2/3)*32,e->y-sin(e->d+i*M_PI*2/3)*32,8,e->d+i*M_PI*2/3);
-			if(T==MT){
-				rndcol();
-				glCirc(e->x,e->y,e->h);
-				glColor(wht);
-				for(int i=0;i<3;i++)
-					glLine(e->x+cos(e->d+i*M_PI*2/3)*(32-e->h*3),e->y-sin(e->d+i*M_PI*2/3)*(32-e->h*3),e->x+cos(e->d+i*M_PI*2/3)*32,e->y-sin(e->d+i*M_PI*2/3)*32);
-			}
+				mkbd(e->c,e->x+cos(e->d+i*M_PI*2/3)*32,e->y+sin(e->d+i*M_PI*2/3)*32,8,e->d+i*M_PI*2/3);
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 			else(e->h<8||rdmg(e->x,e->y,e->h)){
 				w8(e-E);
 				w8(38);
 				e->h--;
 			}
+			if(T==MT){
+				rndcol();
+				glCirc(e->x,e->y,e->h);
+				glColor(wht);
+				for(int i=0;i<3;i++)
+					glLine(e->x+cos(e->d+i*M_PI*2/3)*(32-e->h*3),e->y+sin(e->d+i*M_PI*2/3)*(32-e->h*3),e->x+cos(e->d+i*M_PI*2/3)*32,e->y+sin(e->d+i*M_PI*2/3)*32);
+			}
 		case(EDOG)
-			et=nearest(e->x,e->y);
+			et=nearest(e);
 			if(dst2(e->x,e->y,Px[et],Py[et])<64){
 				wfloat(Px[et]);
 				w8(2+et);
@@ -276,18 +280,18 @@ void eloop(){
 				w8(e-E);
 				w8(41);
 				e->x+=cos(e->d)*e->xd;
-				e->y-=sin(e->d)*e->xd;
+				e->y+=sin(e->d)*e->xd;
 				et=2;
-			}
-			if(T==MT){
-				glColor(et==2?wht:red+et);
-				glCirc(e->x,e->y,min(e->h,T-e->c));
 			}
 			if(rdmg2(e->x,e->y,16)&(et==2?0xFFFF:et==1?0x00FF:0xFF00)){
 				w8(e-E);
 				w8(38);
 				e->h--;
 				if(!e->h)goto kille;
+			}
+			if(T==MT){
+				glColor(et==2?wht:red+et);
+				glCirc(e->x,e->y,min(e->h,T-e->c));
 			}
 		}
 		if(0)kille:{

@@ -1,11 +1,5 @@
 #define FIRE
 #include "df.h"
-#define gZ(x) (!!((x)&1))
-#define gX(x) (!!((x)&2))
-#define gD(x) (!!((x)&4))
-#define gA(x) (!!((x)&8))
-#define gS(x) (!!((x)&16))
-#define gW(x) (!!((x)&32))
 uint16_t T,MT;
 static uint16_t mnT,mxT,moT;
 const uint8_t col[13]={255,0,0,255,255,255,63,47,95,255,0,0,0};
@@ -14,7 +8,7 @@ uint8_t*pin,Pt,Pf[2],Pi,*mbuf;
 int8_t Pe=127;
 int Ph[2],mlen;
 uint16_t Php[2];
-float Px[2]={32,96},Py[2]={160,160},Lzr[32][2];
+float Px[2]={32,96},Py[2]={96,96},Lzr[32][2];
 int Lzo,Box,Boy,Bor;
 void stepBack(int n){
 	for(;;){
@@ -86,7 +80,7 @@ void stepBack(int n){
 				e->yd=rfloat();
 				e->xd=rfloat();
 			}
-			case(31)E[r8()].y+=2;
+			case(31)E[r8()].y-=2;
 			case(32 ... 33)Lzo=a-32;
 			case(34){
 				obje*e=E+r8();
@@ -126,52 +120,15 @@ void stepBack(int n){
 }
 int main(int argc,char**argv){
 	sprInit();
-	genL1();
 	int isudp;
-	if(argc<2){
-		char ipstr[17],*ipstrp=ipstr,lch;
-		do{
-			int in=sprInput();
-			if(gA(in))Pt=0;
-			else(gD(in))Pt=1;
-			char llch=lch;
-			if(sprKey(KEY_BACKSPACE)&&ipstrp>ipstr)
-				ipstrp--;
-			else(ipstrp-ipstr<17){
-				if(sprKey('T'))lch=*ipstrp++='t';
-				else(sprKey('.'))lch=*ipstrp++='.';
-				else{
-					for(int i='0';i<='9';i++)
-						if(sprKey(i)){
-							lch=*ipstrp++=i;
-							goto lchset;
-						}
-					lch=0;
-				}
-			}
-		lchset:
-			if(lch&&llch==lch)ipstrp--;
-			sprBeginFrame();
-			notex();
-			rndcol();
-			glRect(0,0,160,256);
-			int x=0;
-			for(char*p=ipstr;p<ipstrp;p++){
-				rndrndcol();
-				tfChar(x,32,*p);
-				x+=6;
-			}
-			retex();
-			drawSpr(Pt?Ika:Kae,16,16,0,Pt?shb:shr);
-			sprEndFrame(1./20);
-		}while(!sprKey(KEY_ENTER));
-		*ipstrp=0;
-		isudp=netinit(ipstr);
-	}else{
+	if(argc<2)
+		isudp=sprMenu();
+	else{
 		if(argc==3)Pt=atoi(argv[2]);
 		isudp=netinit(argv[1]);
 	}
 	if(isudp)mbuf=malloc(mlen=5);
+	genL1();
 	for(;;){
 		int shift=min(mnT,T)-rwT;
 		if(shift>0){
@@ -229,7 +186,7 @@ int main(int argc,char**argv){
 			if(++Bor>24)Bor=0;
 		}
 		for(int i=0;i<2;i++){
-			float Pxx=(gD(pin[cpi+i])-gA(pin[cpi+i]))*2,Pyy=(gS(pin[cpi+i])-gW(pin[cpi+i]))*2;
+			float Pxx=(gD(pin[cpi+i])-gA(pin[cpi+i]))*2,Pyy=(gW(pin[cpi+i])-gS(pin[cpi+i]))*2;
 			if(Pxx&&Pyy){
 				Pxx*=M_SQRT2;
 				Pyy*=M_SQRT2;
@@ -253,10 +210,10 @@ int main(int argc,char**argv){
 					w8(40);
 					Pe--;
 					if(i){
-						mkpb(1,Px[1]-2,Py[1]-4,0,-3);
-						mkpb(1,Px[1]+2,Py[1]-4,0,-3);
+						mkpb(1,Px[1]-2,Py[1]-4,0,3);
+						mkpb(1,Px[1]+2,Py[1]-4,0,3);
 					}else{
-						mkpb(0,Px[0],Py[0],0,4);
+						mkpb(0,Px[0],Py[0],0,-4);
 						float xd=64-Px[0],yd=128-Py[0],xy=sqrt(xd*xd+yd*yd)?:1;
 						mkpb(0,Px[0],Py[0],xd*3/xy,yd*3/xy);
 					}
@@ -348,6 +305,8 @@ int main(int argc,char**argv){
 				glColor(wht);
 				glCirc(Box,Boy,Bor);
 			}
+			glColor(blk);
+			glRect(128,0,160,256);
 			rndcol();
 			glRect(128,0,136,Pe*2);
 			glRect(136,64,144,64+T-mxT);
@@ -356,8 +315,8 @@ int main(int argc,char**argv){
 			enableBlend();
 			if(Lzo){
 				memmove(Lzr+1,Lzr,248);
-				Lzr[0][0]=Px[1]+(rand()%3)-1;
-				Lzr[0][1]=Py[1]-3+(rand()&3);
+				Lzr[0][0]=Px[1]+(rnd()%3)-1;
+				Lzr[0][1]=Py[1]-3+(rnd()&3);
 				glLzr();
 			}
 			retex();
