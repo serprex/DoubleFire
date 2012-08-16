@@ -1,6 +1,7 @@
 #include "df.h"
 #define PBIT (p?128:0)
 #define WXY l16(x);l16(y);
+#define RXY e->x=rl16();e->y=rl16();
 static uint8_t Lv[65536];
 uint8_t*Lp=Lv;
 #define l(x) static void l##x(uint##x##_t a){*(uint##x##_t*)Lp=a;Lp+=x/8;}static int##x##_t rl##x(){Lp+=x/8;return*(int##x##_t*)(Lp-x/8);}
@@ -23,16 +24,14 @@ void mke(){
 		default:printf("Unknown E%x\n",t);
 		case(ECAN)
 			e->h=5;
-			e->x=rl16();
-			e->y=rl16();
+			RXY
 			v=rlfloat();
 			e->d=rlfloat();
 			e->xd=cos(e->d)*v;
 			e->yd=sin(e->d)*v;
 		case(ETAR)
 			e->h=32;
-			e->x=rl16();
-			e->y=rl16();
+			RXY
 			e->xd=0;
 			e->yd=M_PI;
 		case(EB1)
@@ -44,8 +43,7 @@ void mke(){
 			memset(e->a+1,0,19);
 		case(EROT)
 			e->h=12;
-			e->x=rl16();
-			e->y=rl16();
+			RXY
 			e->d=M_PI/2;
 			v=rlfloat();
 			d=rlfloat();
@@ -53,8 +51,12 @@ void mke(){
 			e->yd=sin(d)*v;
 		case(EDOG)
 			e->h=16;
-			e->x=rl16();
-			e->y=rl16();
+			RXY
+			e->xd=rlfloat();
+			e->d=rlfloat();
+		case(EPOO)
+			e->h=16;
+			RXY
 			e->xd=rlfloat();
 			e->d=rlfloat();
 		}
@@ -96,10 +98,17 @@ static void dog(uint16_t t,int16_t x,int16_t y,float v,float d){
 	lfloat(v);
 	lfloat(d);
 }
+static void poo(uint16_t t,int16_t x,int16_t y,float v,float d){
+	l16(t);
+	l8(EPOO);
+	WXY
+	lfloat(v);
+	lfloat(d);
+}
 void genL1(){
 	for(int i=0;i<5;i++){
 		can(i*60+5,10,246,1,M_PI*3/2);
-		can(i*60+15,118,10,1,M_PI/2);
+		poo(i*60+15,118,10,1,M_PI/2);
 	}
 	tar(333,80,160);
 	for(int i=0;i<5;i++){

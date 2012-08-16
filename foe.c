@@ -138,7 +138,7 @@ void eloop(){
 			e->y+=e->yd;
 			et=nerdest(e);
 			erotxy(e,Px[et],Py[et],M_PI/16);
-			if(!(T-e->c&7)||!(T-e->c&3))
+			if(!(T-e->c&3))
 				mkbd(e->c,e->x+cos(e->d)*r*2,e->y+sin(e->d)*r*2,6,e->d);
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 			else(e->h<4||rdmg(e->x,e->y,e->h*3/2)){
@@ -182,7 +182,7 @@ void eloop(){
 			for(int i=0;i<2;i++)
 				xLz(min(T-e->c,120+e->h),e->x,e->y,i?e->yd:e->xd);
 		case(EB1)
-			if(e->y>192){
+			if(e->y<64){
 				w8(e-E);
 				w8(31);
 				e->y+=2;
@@ -286,12 +286,31 @@ void eloop(){
 			if(rdmg2(e->x,e->y,16)&(et==2?0xFFFF:et==1?0x00FF:0xFF00)){
 				w8(e-E);
 				w8(38);
-				e->h--;
-				if(!e->h)goto kille;
+				if(!--e->h)goto kille;
 			}
 			if(T==MT){
 				glColor(et==2?wht:red+et);
 				glCirc(e->x,e->y,min(e->h,T-e->c));
+			}
+		case(EPOO)
+			et=nearest(e);
+			erotxy(e,Px[et],Py[et],M_PI/64);
+			wfloat(e->x);
+			wfloat(e->y);
+			w8(e-E);
+			w8(41);
+			e->x+=cos(e->d)*e->xd;
+			e->y+=sin(e->d)*e->xd;
+			if(!(T-e->c&7))
+				mkbd(e->c,e->x,e->y,0,0);
+			if(T==MT){
+				rndcol();
+				glCirc(e->x,e->y,min(T-e->c,e->h)/2);
+			}
+			if(dst2(e->x,e->y,Px[et],Py[et])<e->h*e->h/2){
+				w8(e-E);
+				w8(38);
+				if(--e->h<3)goto kille;
 			}
 		}
 		if(0)kille:{

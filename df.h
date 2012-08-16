@@ -4,14 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
-typedef struct{
-	uint16_t p;
-	float x,y,xd,yd;
-}bxy;
 typedef const uint8_t*const colt;
-void mkb(int p,float x,float y,float xd,float yd);
-void mkbd(int p,float x,float y,float v,float d);
-void mkbxy(int p,float x,float y,float xx,float yy,float v);
 extern uint16_t T,MT;
 extern uint8_t*pin,Pf[2],Pi,Pt;
 extern int8_t Pe;

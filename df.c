@@ -315,8 +315,9 @@ int main(int argc,char**argv){
 			enableBlend();
 			if(Lzo){
 				memmove(Lzr+1,Lzr,248);
-				Lzr[0][0]=Px[1]+(rnd()%3)-1;
-				Lzr[0][1]=Py[1]-3+(rnd()&3);
+				int r=rnd();
+				Lzr[0][0]=Px[1]-1+((r>>2)%3);
+				Lzr[0][1]=Py[1]-3+(r&3);
 				glLzr();
 			}
 			retex();

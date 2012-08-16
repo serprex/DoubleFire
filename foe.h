@@ -7,8 +7,12 @@ typedef union{
 		float x,y,xd,yd,d;
 	};
 }obje;
+typedef struct{
+	float x,y,xd,yd;
+	uint16_t p;
+}bxy;
 typedef enum{
-	BMI,BEX,ECAN,ETAR,EB1,EB2,EROT,EDOG
+	BMI,BEX,ECAN,ETAR,EB1,EB2,EROT,EDOG,EPOO
 }oid;
 extern obje E[64],*Etop;
 extern bxy B[8192],*Btop,PB[256],*PBtop;
