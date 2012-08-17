@@ -1,18 +1,20 @@
-#!/bin/sh
+#!sh
 cc=gcc
-cflags=-g -std=gnu11 -O2 -pipe -c
-o=tgen.o spr.o lv.o net.o foe.o df.o
+cflags=-g -std=gnu11 -O2 -pipe
 rule cc
- command = $cc $in $cflags -o $out -MMD -MF $out.d
+ command = $cc $in $cflags $oflags -o $out -MMD -MF $out.d
+ depfile = $out.d
+rule mingw
+ command = i486-mingw32-gcc $cflags $in -msse2 -o DoubleFire!!.exe -lglfw -lopengl32 -lm -lws2_32 -MMD -MF $out.d
  depfile = $out.d
 rule pinch
  command = pinch S
 build tgen.c: pinch spr/S.png
 %
 for f in spr lv net foe df tgen
-do echo "build $f.o: cc $f.c"
+do echo "build $f.o: cc $f.c";echo " oflags=-c"
 done
 %
 build DoubleFire!!: cc tgen.o spr.o lv.o net.o foe.o df.o
  cflags=-lglfw -lGL -lm
-default DoubleFire!!
+build DoubleFire!!.exe: mingw tgen.c spr.c lv.c net.c foe.c df.c
