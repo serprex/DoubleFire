@@ -1,0 +1,18 @@
+#!/bin/sh
+cc=gcc
+cflags=-g -std=gnu11 -O2 -pipe -c
+o=tgen.o spr.o lv.o net.o foe.o df.o
+rule cc
+ command = $cc $in $cflags -o $out -MMD -MF $out.d
+ depfile = $out.d
+rule pinch
+ command = pinch S
+build tgen.c: pinch spr/S.png
+%
+for f in spr lv net foe df tgen
+do echo "build $f.o: cc $f.c"
+done
+%
+build DoubleFire!!: cc tgen.o spr.o lv.o net.o foe.o df.o
+ cflags=-lglfw -lGL -lm
+default DoubleFire!!
