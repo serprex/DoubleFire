@@ -1,20 +1,32 @@
 #!sh
-cc=gcc
-cflags=-g -std=gnu11 -O2 -pipe
+%
+if test `uname` = Linux
+then echo cc=gcc -pipe
+else echo cc=clang -pipe
+fi
+%
+cf=-g -std=gnu11 -O2
 rule cc
- command = $cc $in $cflags $oflags -o $out -MMD -MF $out.d
+ command = $cc $in $cf $of -o $out -MMD -MF $out.d
  depfile = $out.d
 rule mingw
- command = i486-mingw32-gcc $cflags $in -msse2 -o DoubleFire!!.exe -lglfw -lopengl32 -lm -lws2_32 -MMD -MF $out.d
+ command = i486-mingw32-gcc $cf $in -msse2 -o DoubleFire!!.exe -lglfw -lopengl32 -lm -lws2_32 -MMD -MF $out.d
  depfile = $out.d
 rule pinch
  command = pinch S
 build tgen.c: pinch spr/S.png
 %
 for f in spr lv net foe df tgen
-do echo "build $f.o: cc $f.c";echo " oflags=-c"
+do echo -e "build $f.o: cc $f.c\n of=-c"
 done
 %
 build DoubleFire!!: cc tgen.o spr.o lv.o net.o foe.o df.o
- cflags=-lglfw -lGL -lm
+%
+echo -n " cf=-lm -lglfw -"
+if test `uname` = Linux
+then echo "lGL"
+else echo "framework OpenGL"
+fi
+%
 build DoubleFire!!.exe: mingw tgen.c spr.c lv.c net.c foe.c df.c
+default DoubleFire!!
