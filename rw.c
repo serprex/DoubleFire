@@ -24,8 +24,9 @@ static void stepBack(int n){
 			case(2 ... 3)Px[a-2]=rfloat();
 			case(4 ... 5)Py[a-4]=rfloat();
 			case(6)Pe=r8();
-			case(7)Etop--;
-			case(8)Lp-=r8();
+			case(8)
+				Etop--;
+				Lp-=r8();
 			case(9){
 				obje*e=E+r8();
 				*Etop++=*e;
@@ -236,6 +237,10 @@ void plHit(){
 	}else w8(36);
 	Pe-=48;
 	Pi=64;
+}
+void rwmke(uint8_t l){
+	w8(l);
+	w8(8);
 }
 void pbloop(){
 	if(PBtop>PB)w8(14);

@@ -1,4 +1,3 @@
-#define RWSHIM
 #include "df.h"
 #define PBIT (p?128:0)
 #define WXY l16(x);l16(y);
@@ -17,7 +16,6 @@ void mke(){
 		uint8_t*LL=Lp;
 		Lp+=2;
 		uint8_t t=rl8();
-		w8(7);
 		obje*e=Etop++;
 		e->t=t;
 		e->c=T;
@@ -61,8 +59,7 @@ void mke(){
 			e->xd=rlfloat();
 			e->d=rlfloat();
 		}
-		w8(Lp-LL);
-		w8(8);
+		rwmke(Lp-LL);
 	}
 }
 static void can(uint16_t t,int16_t x,int16_t y,float v,float d){

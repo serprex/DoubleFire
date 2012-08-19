@@ -17,5 +17,6 @@ void rwDrawLag(int);
 void rwInit();
 void incPe();
 void offLzo();
+void rwmke(uint8_t);
 double rwfps();
 int gpin(int);
