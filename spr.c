@@ -251,7 +251,7 @@ int sprMenu(){
 		}
 	lchset:
 		if(lch&&llch==lch)ipstrp--;
-		sprBeginFrame();
+		sprBegin();
 		notex();
 		rndcol();
 		glRect(0,0,160,256);
@@ -263,16 +263,16 @@ int sprMenu(){
 		}
 		retex();
 		drawSpr(Pt?Ika:Kae,16,16,0,Pt?shb:shr);
-		sprEndFrame(1./20);
+		sprEnd(1./20);
 	}while(!glfwGetKey(GLFW_KEY_ENTER));
 	*ipstrp=0;
 	return netinit(ipstr);
 }
-void sprBeginFrame(){
+void sprBegin(){
 	*(uint32_t*)rcol=rnd();
 	glClear(GL_COLOR_BUFFER_BIT);
 }
-void sprEndFrame(float fps){
+void sprEnd(float fps){
 	glfwSwapBuffers();
 	double gT=fps-glfwGetTime();
 	if(gT>0)glfwSleep(gT);

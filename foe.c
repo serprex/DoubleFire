@@ -1,3 +1,4 @@
+#define RWSHIM
 #include "df.h"
 obje E[64],*Etop=E;
 bxy B[8192],*Btop=B,PB[256],*PBtop=PB;
@@ -45,7 +46,7 @@ int rinpb(float x,float y,int r){
 	return n;
 }
 int rinlz(float x,float y,int r){
-	return Lzo&&x>=Px[1]-r&&x<=Px[1]+r&&(y<=Py[1]||dst2(x,y,Px[1],Py[1])<=sqr(r));
+	return Lzo&&x>=Px[1]-r&&x<=Px[1]+r&&(y>=Py[1]||dst2(x,y,Px[1],Py[1])<=sqr(r));
 }
 int rinbo(float x,float y,int r){
 	return Bor&&dst2(x,y,Box,Boy)<=sqr(r+Bor);
@@ -307,10 +308,10 @@ void eloop(){
 				rndcol();
 				glCirc(e->x,e->y,min(T-e->c,e->h)/2);
 			}
-			if(dst2(e->x,e->y,Px[et],Py[et])<e->h*e->h/2){
+			if(dst2(e->x,e->y,Px[et],Py[et])<e->h*e->h/2||e->h<8){
 				w8(e-E);
 				w8(38);
-				if(--e->h<3)goto kille;
+				if(!--e->h)goto kille;
 			}
 		}
 		if(0)kille:{

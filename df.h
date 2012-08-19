@@ -6,7 +6,7 @@
 #include <assert.h>
 typedef const uint8_t*const colt;
 extern uint16_t T,MT;
-extern uint8_t*pin,Pf[2],Pi,Pt;
+extern uint8_t Pf[2],Pi,Pt;
 extern int8_t Pe;
 extern int Ph[2];
 extern uint16_t Php[2];
@@ -18,6 +18,7 @@ extern colt red,blu,wht,shr,shb,blk;
 #include "spr.h"
 #include "net.h"
 #include "foe.h"
+#include "rw.h"
 #define case(x) break;case x:;
 #define else(x) else if(x)
 #define sqr(x) ({__typeof__(x) _x=(x);_x*_x;})
@@ -32,22 +33,13 @@ extern colt red,blu,wht,shr,shb,blk;
 #define gA(x) (!!((x)&8))
 #define gS(x) (!!((x)&16))
 #define gW(x) (!!((x)&32))
-#ifdef FIRE
-typedef struct{
-	uint8_t*p;
-	int n;
-}frame;
-static frame*rw;
-static int crw=-1,rwp,rwT,welt,cpi=-2,piT,pip;
-#define w(x) void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
-#define wt(t) void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);assert(rw[crw].n>=0);return*(t*)(rw[crw].p+rw[crw].n);}
-#else
-#define w(x) void w##x(uint##x##_t a);
+#ifdef RWSHIM
+#define w(x) void w##x(uint##x##_t);
 #define wt(t) void w##t(t a);
-#endif
 w(8)
 w(16)
 w(32)
 wt(float)
 wt(obje)
 wt(bxy)
+#endif

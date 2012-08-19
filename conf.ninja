@@ -12,9 +12,8 @@ rule pinch
  command = pinch S
 build tgen.c: pinch spr/S.png
 {
-src="tgen","spr","lv","net","foe","df"
-for f in src:
-	print("build {0}.o: cc {0}.c\n of=-c".format(f))
+src="tgen","spr","lv","net","foe","rw","df"
+for s in src:print("build {0}.o: cc {0}.c\n of=-c".format(s))
 }
 build DoubleFire!!:cc {$" ".join(s+".o" for s in src)$}
  cf=-lm -lglfw -{$"lGL" if linux else "framework OpenGL"$}

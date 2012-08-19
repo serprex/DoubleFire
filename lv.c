@@ -1,3 +1,4 @@
+#define RWSHIM
 #include "df.h"
 #define PBIT (p?128:0)
 #define WXY l16(x);l16(y);

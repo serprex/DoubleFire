@@ -21,7 +21,6 @@ int psize(){
 #include <sys/poll.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
-#include <netinet/tcp.h>
 static struct pollfd pfd={.events=POLLIN};
 int any(){
 	return poll(&pfd,1,0);
@@ -76,8 +75,6 @@ int netinit(char*ipstr){
 	pfd.fd=udp;
 	#endif
 	if(type==SOCK_STREAM){
-		int one=1;
-		setsockopt(udp,IPPROTO_TCP,TCP_NODELAY,(char*)&one,sizeof(int));
 		if(ipstr){
 			nrecv(&Pt,1);
 			Pt^=1;
@@ -93,10 +90,10 @@ int netinit(char*ipstr){
 			break;
 		}
 		sprInput();
-		sprBeginFrame();
+		sprBegin();
 		rndcol();
 		glRect(0,0,160,256);
-		sprEndFrame(1./5);
+		sprEnd(1./5);
 	}
 	retex();
 	return 1;
