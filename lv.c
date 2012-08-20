@@ -16,7 +16,7 @@ void mke(){
 		uint8_t*LL=Lp;
 		Lp+=2;
 		uint8_t t=rl8();
-		obje*e=Etop++;
+		obje*e=Etop;
 		e->t=t;
 		e->c=T;
 		switch(t&127){
@@ -59,7 +59,7 @@ void mke(){
 			e->xd=rlfloat();
 			e->d=rlfloat();
 		}
-		rwmke(Lp-LL);
+		incE(Lp-LL);
 	}
 }
 static void can(uint16_t t,int16_t x,int16_t y,float v,float d){

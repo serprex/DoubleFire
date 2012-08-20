@@ -3,21 +3,21 @@ obje E[64],*Etop=E;
 bxy B[8192],*Btop=B,PB[256],*PBtop=PB;
 void mkpb(int p,float x,float y,float xd,float yd){
 	bxy*b=PBtop;
-	incPB();
 	b->p=p;
 	b->x=x;
 	b->y=y;
 	b->xd=xd;
 	b->yd=yd;
+	incPB();
 }
 void mkb(int p,float x,float y,float xd,float yd){
 	bxy*b=Btop;
-	incB();
 	b->p=p;
 	b->x=x;
 	b->y=y;
 	b->xd=xd;
 	b->yd=yd;
+	incB();
 }
 void mkbd(int p,float x,float y,float v,float d){
 	mkb(p,x,y,cos(d)*v,sin(d)*v);

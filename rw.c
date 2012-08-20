@@ -163,16 +163,6 @@ void rwInput(int isudp){
 		nsend(pin+cpi+Pt,1);
 	}
 }
-void plDie(){
-	wfloat(Px[0]);
-	w8(2);
-	wfloat(Px[1]);
-	w8(3);
-	w8(Pe);
-	w8(6);
-	Px[0]=Px[1]=20;
-	Pe=127;
-}
 void setBor(int b){
 	w8(Bor);
 	w8(37);
@@ -196,6 +186,11 @@ void setPf(int i,uint8_t f){
 void onPf(int i){
 	w8(10+i);
 	Pf[i]=1;
+}
+void setPe(int8_t e){
+	w8(Pe);
+	w8(6);
+	Pe=e;
 }
 void decPe(){
 	w8(40);
@@ -238,10 +233,6 @@ void plHit(){
 	Pe-=48;
 	Pi=64;
 }
-void rwmke(uint8_t l){
-	w8(l);
-	w8(8);
-}
 void deceh(obje*e){
 	w8(e-E);
 	w8(38);
@@ -268,9 +259,16 @@ void add2ey(obje*e){
 }
 void incPB(){
 	w8(17);
+	PBtop++;
 }
 void incB(){
 	w8(26);
+	Btop++;
+}
+void incE(uint8_t l){
+	w8(l);
+	w8(8);
+	Etop++;
 }
 void marke(){
 	w8(25);
@@ -288,7 +286,7 @@ int killpb(bxy*b){
 }
 int killb(bxy*b){
 	wbxy(*b);
-	w8(b-B);
+	w16(b-B);
 	w8(21);
 	if(b==--Btop)return 1;
 	*b=*Btop;
@@ -385,14 +383,13 @@ void rwEnd(int isudp){
 					printf(" t2<piT%d:%d:%d",m->t*2,piT,piT+pip);
 					goto nextm;
 				}
-				if(m->t<mnT||(pin[m->t*2-piT+!Pt]&128)){
-					printf(" Already%d:%d",m->t,mnT);
-					goto nextm;
-				}
 				if(m->t*2+2-piT>pip){
 					int hip=pip;
 					pin=realloc(pin,pip=m->t*2+2-piT);
 					memset(pin+hip,m->c,pip-hip);
+				}else(m->t<mnT||(pin[m->t*2-piT+!Pt]&128)){
+					printf(" Already%d:%d",m->t,mnT);
+					goto nextm;
 				}
 				if(m->t<T&&(pin[m->t*2-piT+!Pt]&127)!=m->c){
 					for(int i=m->t*2+2-piT+!Pt;i<pip;i+=2){

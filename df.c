@@ -27,8 +27,11 @@ int main(int argc,char**argv){
 			notex();
 			disableBlend();
 		}
-		if(Pe<0)
-			plDie();
+		if(Pe<0){
+			setPx(0,20);
+			setPx(1,20);
+			setPe(127);
+		}
 		mke();
 		if(Bor){
 			if(Bor==24)setBor(0);
