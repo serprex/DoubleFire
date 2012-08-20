@@ -33,13 +33,3 @@ extern colt red,blu,wht,shr,shb,blk;
 #define gA(x) (!!((x)&8))
 #define gS(x) (!!((x)&16))
 #define gW(x) (!!((x)&32))
-#ifdef RWSHIM
-#define w(x) void w##x(uint##x##_t);
-#define wt(t) void w##t(t a);
-w(8)
-w(16)
-w(32)
-wt(float)
-wt(obje)
-wt(bxy)
-#endif

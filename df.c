@@ -80,7 +80,21 @@ int main(int argc,char**argv){
 			}else(Lzo&&i)
 				offLzo();
 		}
-		pbloop();
+		if(PBtop>PB)markpb();
+		for(bxy*b=PB;b<PBtop;b++){
+		pbagain:
+			b->x+=b->xd;
+			b->y+=b->yd;
+			if(b->y<0||b->x<0||b->x>128||b->y>256){
+				if(killpb(b))break;
+				goto pbagain;
+			}else(T==MT){
+				glColor(red+b->p);
+				glRect(b->x-1,b->y-1,b->x+1,b->y+1);
+				glColor(b->p?wht:blk);
+				glRect(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
+			}
+		}
 		Ph[0]=Ph[1]=2;
 		Php[0]=Php[1]=0;
 		if(T==MT)rndcol();

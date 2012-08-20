@@ -1,10 +1,9 @@
-#define RWSHIM
 #include "df.h"
 obje E[64],*Etop=E;
 bxy B[8192],*Btop=B,PB[256],*PBtop=PB;
 void mkpb(int p,float x,float y,float xd,float yd){
-	w8(17);
-	bxy*b=PBtop++;
+	bxy*b=PBtop;
+	incPB();
 	b->p=p;
 	b->x=x;
 	b->y=y;
@@ -12,8 +11,8 @@ void mkpb(int p,float x,float y,float xd,float yd){
 	b->yd=yd;
 }
 void mkb(int p,float x,float y,float xd,float yd){
-	w8(26);
-	bxy*b=Btop++;
+	bxy*b=Btop;
+	incB();
 	b->p=p;
 	b->x=x;
 	b->y=y;
@@ -36,11 +35,7 @@ int rinpb(float x,float y,int r){
 	pbagain:
 		if(dst2(x,y,b->x,b->y)<=r){
 			n+=b->p?256:1;
-			wbxy(*b);
-			w8(b-PB);
-			w8(20);
-			if(b==--PBtop)break;
-			*b=*PBtop;
+			if(killpb(b))break;
 			goto pbagain;
 		}
 	return n;
@@ -78,21 +73,15 @@ static void xLz(float c,float x,float y,float d){
 	for(int i=0;i<2;i++)
 		if(dst2(x,y,Px[i],Py[i])<c&&fabsf(rnorm(d-dir(x,y,Px[i],Py[i])))<M_PI/64)Ph[i]--;
 }
-float rrot(float a,float b,float m){
+static float rrot(float a,float b,float m){
 	float c=rnorm(b-a);
 	return fabsf(c)<=m?b:c>0?a+m:a-m;
 }
-void rrota(float*a,float b,float m){
-	*a=rrot(*a,b,m);
+static float rrotxy(float a,float x1,float y1,float x2,float y2,float m){
+	return rrot(a,dir(x1,y1,x2,y2),m);
 }
-void rrotxy(float*a,float x1,float y1,float x2,float y2,float m){
-	rrota(a,dir(x1,y1,x2,y2),m);
-}
-void erotxy(obje*e,float x,float y,float m){
-	wfloat(e->d);
-	w8(e-E);
-	w8(28);
-	rrotxy(&e->d,e->x,e->y,x,y,m);
+static void erotxy(obje*e,float x,float y,float m){
+	seted(e,rrotxy(e->d,e->x,e->y,x,y,m));
 }
 int nerdest(obje*e){
 	return fabsf(rnorm(e->d-dir(e->x,e->y,Px[0],Py[0])))>fabsf(rnorm(e->d-dir(e->x,e->y,Px[1],Py[1])));
@@ -101,7 +90,7 @@ int nearest(obje*e){
 	return dst2(e->x,e->y,Px[0],Py[0])>dst2(e->x,e->y,Px[1],Py[1]);
 }
 void eloop(){
-	if(Btop>B||Etop>E)w8(25);
+	if(Btop>B||Etop>E)marke();
 	for(bxy*b=B;b<Btop;b++){
 	bagain:;
 		float bx=b->x,by=b->y;
@@ -121,11 +110,7 @@ void eloop(){
 				goto killb;
 			}
 		if(0){killb:
-			wbxy(*b);
-			w16(b-B);
-			w8(21);
-			if(b==--Btop)break;
-			*b=*Btop;
+			if(killb(b))break;
 			goto bagain;
 		}
 	}
@@ -143,9 +128,7 @@ void eloop(){
 				mkbd(e->c,e->x+cos(e->d)*r*2,e->y+sin(e->d)*r*2,6,e->d);
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 			else(e->h<4||rdmg(e->x,e->y,e->h*3/2)){
-				w8(e-E);
-				w8(38);
-				e->h--;
+				deceh(e);
 			}
 			if(T==MT){
 				float r=min(T-e->c,e->h);
@@ -157,18 +140,9 @@ void eloop(){
 		case(ETAR)
 			r=min(T-e->c,abs(e->h));
 			et=e->h<6?4:rdmg(e->x,e->y,r);
-			if(et){
-				w8(e->h);
-				w8(e-E);
-				w8(29);
-				e->h-=et;
-			}
-			wfloat(e->xd);
-			wfloat(e->yd);
-			w8(e-E);
-			w8(30);
-			rrotxy(&e->xd,e->x,e->y,Px[0],Py[0],M_PI/64);
-			rrotxy(&e->yd,e->x,e->y,Px[1],Py[1],M_PI/64);
+			if(et)
+				seteh(e,e->h-et);
+			setexdyd(e,rrotxy(e->xd,e->x,e->y,Px[0],Py[0],M_PI/64),rrotxy(e->yd,e->x,e->y,Px[1],Py[1],M_PI/64));
 			if(e->h<-120)goto kille;
 			if(T==MT){
 				glColor(wht);
@@ -183,23 +157,17 @@ void eloop(){
 			for(int i=0;i<2;i++)
 				xLz(min(T-e->c,120+e->h),e->x,e->y,i?e->yd:e->xd);
 		case(EB1)
-			if(e->y<64){
-				w8(e-E);
-				w8(31);
-				e->y+=2;
-			}
+			if(e->y<64)
+				add2ey(e);
 			mkbxy(e->c,e->x,e->y,Px[0],Py[0],4);
 			mkbxy(e->c+1,e->x,e->y,Px[1],Py[1],4);
 			mkbxy(e->c+2,e->x,e->y,Px[!(e->h&8)],Py[!(e->h&8)],1);
 			et=rdmg2(e->x,e->y,e->h);
 			if((e->h&7)!=7&&getb(et,e->h&8)){
-				w8(e->h++);
-				w8(e-E);
-				w8(29);
+				seteh(e,e->h+1);
 			}else(getb(et,!(e->h&8))||e->h<7){
-				w8(e-E);
-				w8(38);
-				if(!--e->h)goto kille;
+				deceh(e);
+				if(!e->h)goto kille;
 			}
 			if(T==MT)
 				for(double a=0;a<M_PI;a+=M_PI/48){
@@ -214,16 +182,8 @@ void eloop(){
 					int xx=28+x*(e->a[18]/2-e->a[19]),yy=92+y*(e->a[18]/2-e->a[19]),xy=x+y*4+1;
 					if((!(T+x+y*3&15))&&(x==0&&y==0||x==3&&y==0||x==3&&y==3||x==0&&y==3))
 						mkbxy(e->c+x+y*4,xx,yy,Px[e->a[xy]],Py[e->a[xy]],1);
-					if(getb(rdmg2(xx,yy,8),e->a[xy])){
-						w8(xy);
-						w8(e-E);
-						w8(34);
-						e->a[xy]^=1;
-						if(x<3)e->a[xy+1]^=1;
-						if(x>0)e->a[xy-1]^=1;
-						if(y<3)e->a[xy+4]^=1;
-						if(y>0)e->a[xy-4]^=1;
-					}
+					if(getb(rdmg2(xx,yy,8),e->a[xy]))
+						eb2xy(e,xy,x,y);
 					if(T==MT){
 						glColor(red+e->a[xy]);
 						glCirc(xx,yy,e->a[18]/4-e->a[19]/2);
@@ -236,15 +196,11 @@ void eloop(){
 					break;
 				}
 			if(et){
-				if(e->a[18]<48){
-					w8(e-E);
-					w8(18);
-					e->a[18]++;
-				}
+				if(e->a[18]<48)
+					ince18(e);
 			}else{
-				w8(e-E);
-				w8(19);
-				if(++e->a[19]==24)goto kille;
+				ince19(e);
+				if(e->a[19]==24)goto kille;
 			}
 		case(EROT)
 			e->x+=e->xd;
@@ -254,9 +210,7 @@ void eloop(){
 				mkbd(e->c,e->x+cos(e->d+i*M_PI*2/3)*32,e->y+sin(e->d+i*M_PI*2/3)*32,8,e->d+i*M_PI*2/3);
 			if(e->x<-5||e->x>133||e->y<-5||e->y>261||e->h<1)goto kille;
 			else(e->h<8||rdmg(e->x,e->y,e->h)){
-				w8(e-E);
-				w8(38);
-				e->h--;
+				deceh(e);
 			}
 			if(T==MT){
 				rndcol();
@@ -268,26 +222,16 @@ void eloop(){
 		case(EDOG)
 			et=nearest(e);
 			if(dst2(e->x,e->y,Px[et],Py[et])<64){
-				wfloat(Px[et]);
-				w8(2+et);
-				wfloat(Py[et]);
-				w8(4+et);
-				Px[et]=e->x;
-				Py[et]=e->y;
+				setPx(et,e->x);
+				setPy(et,e->y);
 			}else{
 				erotxy(e,Px[et],Py[et],M_PI/32);
-				wfloat(e->x);
-				wfloat(e->y);
-				w8(e-E);
-				w8(41);
-				e->x+=cos(e->d)*e->xd;
-				e->y+=sin(e->d)*e->xd;
+				setexy(e,e->x+cos(e->d)*e->xd,e->y+sin(e->d)*e->xd);
 				et=2;
 			}
 			if(rdmg2(e->x,e->y,16)&(et==2?0xFFFF:et==1?0x00FF:0xFF00)){
-				w8(e-E);
-				w8(38);
-				if(!--e->h)goto kille;
+				deceh(e);
+				if(!e->h)goto kille;
 			}
 			if(T==MT){
 				glColor(et==2?wht:red+et);
@@ -296,12 +240,7 @@ void eloop(){
 		case(EPOO)
 			et=nearest(e);
 			erotxy(e,Px[et],Py[et],M_PI/64);
-			wfloat(e->x);
-			wfloat(e->y);
-			w8(e-E);
-			w8(41);
-			e->x+=cos(e->d)*e->xd;
-			e->y+=sin(e->d)*e->xd;
+			setexy(e,e->x+cos(e->d)*e->xd,e->y+sin(e->d)*e->xd);
 			if(!(T-e->c&7))
 				mkbd(e->c,e->x,e->y,0,0);
 			if(T==MT){
@@ -309,17 +248,12 @@ void eloop(){
 				glCirc(e->x,e->y,min(T-e->c,e->h)/2);
 			}
 			if(dst2(e->x,e->y,Px[et],Py[et])<e->h*e->h/2||e->h<8){
-				w8(e-E);
-				w8(38);
-				if(!--e->h)goto kille;
+				deceh(e);
+				if(!e->h)goto kille;
 			}
 		}
 		if(0)kille:{
-			wobje(*e);
-			w8(e-E);
-			w8(9);
-			if(e==--Etop)break;
-			*e=*Etop;
+			if(kille(e))break;
 			goto eagain;
 		}
 	}

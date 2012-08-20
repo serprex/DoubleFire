@@ -242,26 +242,99 @@ void rwmke(uint8_t l){
 	w8(l);
 	w8(8);
 }
-void pbloop(){
-	if(PBtop>PB)w8(14);
-	for(bxy*b=PB;b<PBtop;b++){
-	pbagain:
-		b->x+=b->xd;
-		b->y+=b->yd;
-		if(b->y<0||b->x<0||b->x>128||b->y>256){
-			wbxy(*b);
-			w8(b-PB);
-			w8(20);
-			if(b==--PBtop)break;
-			*b=*PBtop;
-			goto pbagain;
-		}else(T==MT){
-			glColor(red+b->p);
-			glRect(b->x-1,b->y-1,b->x+1,b->y+1);
-			glColor(b->p?wht:blk);
-			glRect(b->x-.5,b->y-.5,b->x+.5,b->y+.5);
-		}
-	}
+void deceh(obje*e){
+	w8(e-E);
+	w8(38);
+	e->h--;
+}
+void seteh(obje*e,int8_t h){
+	w8(e->h);
+	w8(e-E);
+	w8(29);
+	e->h=h;
+}
+void setexy(obje*e,float x,float y){
+	wfloat(e->x);
+	wfloat(e->y);
+	w8(e-E);
+	w8(41);
+	e->x=x;
+	e->y=y;
+}
+void add2ey(obje*e){
+	w8(e-E);
+	w8(31);
+	e->y+=2;
+}
+void incPB(){
+	w8(17);
+}
+void incB(){
+	w8(26);
+}
+void marke(){
+	w8(25);
+}
+void markpb(){
+	w8(14);
+}
+int killpb(bxy*b){
+	wbxy(*b);
+	w8(b-PB);
+	w8(20);
+	if(b==--PBtop)return 1;
+	*b=*PBtop;
+	return 0;
+}
+int killb(bxy*b){
+	wbxy(*b);
+	w8(b-B);
+	w8(21);
+	if(b==--Btop)return 1;
+	*b=*Btop;
+	return 0;
+}
+int kille(obje*e){
+	wobje(*e);
+	w8(e-E);
+	w8(9);
+	if(e==--Etop)return 1;
+	*e=*Etop;
+	return 0;
+}
+void seted(obje*e,float d){
+	wfloat(e->d);
+	w8(e-E);
+	w8(28);
+	e->d=d;
+}
+void setexdyd(obje*e,float x,float y){
+	wfloat(e->xd);
+	wfloat(e->yd);
+	w8(e-E);
+	w8(30);
+	e->xd=x;
+	e->yd=y;
+}
+void eb2xy(obje*e,int xy,int x,int y){
+	w8(xy);
+	w8(e-E);
+	w8(34);
+	e->a[xy]^=1;
+	if(x<3)e->a[xy+1]^=1;
+	if(x>0)e->a[xy-1]^=1;
+	if(y<3)e->a[xy+4]^=1;
+	if(y>0)e->a[xy-4]^=1;
+}
+void ince18(obje*e){
+	w8(e-E);
+	w8(18);
+	e->a[18]++;
+}
+void ince19(obje*e){
+	w8(e-E);
+	w8(19);
+	e->a[19]++;
 }
 void rwDrawLag(int isudp){
 	glRect(136,64,144,64+T-mxT);
