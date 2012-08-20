@@ -8,11 +8,10 @@ typedef struct{
 static frame*rw;
 static int crw=-1,rwp,rwT,welt,cpi=-2,piT,pip,mlen;
 static uint8_t*pin,*mbuf;
-#define w(x) void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
-#define wt(t) void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);assert(rw[crw].n>=0);return*(t*)(rw[crw].p+rw[crw].n);}
+#define w(x) static void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
+#define wt(t) static void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);assert(rw[crw].n>=0);return*(t*)(rw[crw].p+rw[crw].n);}
 w(8)
 w(16)
-w(32)
 wt(float)
 wt(obje)
 wt(bxy)
@@ -21,9 +20,11 @@ static void stepBack(int n){
 		while(rw[crw].n){
 			uint8_t a=r8();
 			switch(a){
+			default:__builtin_unreachable();
 			case(2 ... 3)Px[a-2]=rfloat();
 			case(4 ... 5)Py[a-4]=rfloat();
 			case(6)Pe=r8();
+			case(7)Pe++;
 			case(8)
 				Etop--;
 				Lp-=r8();
@@ -33,6 +34,7 @@ static void stepBack(int n){
 				*e=robje();
 			}
 			case(10 ... 11)Pf[a-10]=0;
+			case(12 ... 13)Pf[a-12]=r8();
 			case(14)
 				for(bxy*b=PB;b<PBtop;b++){
 					b->x-=b->xd;
@@ -52,7 +54,7 @@ static void stepBack(int n){
 				*Btop++=*b;
 				*b=rbxy();
 			}
-			case(22 ... 23)Pf[a-22]=r8();
+			case(22 ... 23)Lzo=a-32;
 			case(24)
 				Boy=r8();
 				Box=r8();
@@ -74,6 +76,11 @@ static void stepBack(int n){
 					b->y-=b->yd;
 				}
 			case(26)Btop--;
+			case(27){
+				obje*e=E+r8();
+				e->y=rfloat();
+				e->x=rfloat();
+			}
 			case(28){
 				obje*e=E+r8();
 				e->d=rfloat();
@@ -88,7 +95,15 @@ static void stepBack(int n){
 				e->xd=rfloat();
 			}
 			case(31)E[r8()].y-=2;
-			case(32 ... 33)Lzo=a-32;
+			case(32)
+				Btop=B+r16();
+				for(bxy*b=Btop-1;;b--){
+					*b=rbxy();
+					if(b==B)break;
+				}
+			case 33:
+				Pe+=48;
+				Pi=0;
 			case(34){
 				obje*e=E+r8();
 				int xy=r8(),x=xy-1&3,y=xy-1>>2;
@@ -98,23 +113,8 @@ static void stepBack(int n){
 				if(y<3)e->a[xy+4]^=1;
 				if(y>0)e->a[xy-4]^=1;
 			}
-			case(35)
-				Btop=B+r16();
-				for(bxy*b=Btop-1;;b--){
-					*b=rbxy();
-					if(b==B)break;
-				}
-			case 36:
-				Pe+=48;
-				Pi=0;
-			case(37)Bor=r8();
-			case(38)E[r8()].h++;
-			case(40)Pe++;
-			case(41){
-				obje*e=E+r8();
-				e->y=rfloat();
-				e->x=rfloat();
-			}
+			case(35)Bor=r8();
+			case(36)E[r8()].h++;
 			}
 		}
 		assert(T);
@@ -165,7 +165,7 @@ void rwInput(int isudp){
 }
 void setBor(int b){
 	w8(Bor);
-	w8(37);
+	w8(35);
 	Bor=b;
 }
 void setPx(int i,float x){
@@ -180,7 +180,7 @@ void setPy(int i,float y){
 }
 void setPf(int i,uint8_t f){
 	w8(Pf[i]);
-	w8(22+i);
+	w8(12+i);
 	Pf[i]=f;
 }
 void onPf(int i){
@@ -193,7 +193,7 @@ void setPe(int8_t e){
 	Pe=e;
 }
 void decPe(){
-	w8(40);
+	w8(7);
 	Pe--;
 }
 void incPe(){
@@ -201,11 +201,11 @@ void incPe(){
 	Pe++;
 }
 void onLzo(){
-	w8(32);
+	w8(22);
 	Lzo=1;
 }
 void offLzo(){
-	w8(33);
+	w8(23);
 	Lzo=0;
 }
 void onBor(){
@@ -227,15 +227,15 @@ void plHit(){
 		for(bxy*b=B;b<Btop;b++)
 			wbxy(*b);
 		w16(Btop-B);
-		w8(35);
+		w8(32);
 		Btop=B;
-	}else w8(36);
+	}else w8(33);
 	Pe-=48;
 	Pi=64;
 }
 void deceh(obje*e){
 	w8(e-E);
-	w8(38);
+	w8(36);
 	e->h--;
 }
 void seteh(obje*e,int8_t h){
@@ -248,7 +248,7 @@ void setexy(obje*e,float x,float y){
 	wfloat(e->x);
 	wfloat(e->y);
 	w8(e-E);
-	w8(41);
+	w8(27);
 	e->x=x;
 	e->y=y;
 }
@@ -365,7 +365,7 @@ void rwEnd(int isudp){
 			if(m->t>=moT){
 				moT=m->t;
 				printf(" %d",moT);
-				if(moT<T){
+				if(moT<T&&mlen<512){
 					for(int i=2;i<mlen;i+=3)
 						if(*(uint16_t*)(mbuf+i)==moT)
 							goto rereq;
