@@ -11,9 +11,9 @@ typedef struct{
 	float x,y,xd,yd;
 	uint16_t p;
 }bxy;
-typedef enum{
-	BMI,BEX,ECAN,ETAR,EB1,EB2,EROT,EDOG,EPOO
-}oid;
+enum{
+	CAN,TAR,ROT,DOG,POO,B1,B2,B3
+};
 extern obje E[64],*Etop;
 extern bxy B[8192],*Btop,PB[256],*PBtop;
 void mkpb(int p,float x,float y,float xd,float yd);

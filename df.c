@@ -1,4 +1,3 @@
-#define FIRE
 #include "df.h"
 const uint8_t col[13]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
@@ -109,10 +108,8 @@ int main(int argc,char**argv){
 			for(int i=0;i<2;i++)
 				if(Ph[i]==1&&Pe<127)
 					incPe();
-				else(Ph[i]<1){
+				else(Ph[i]<1)
 					plHit();
-					break;
-				}
 		}
 		if(T==MT){
 			if(Bor){

@@ -1,18 +1,27 @@
 #include "df.h"
-#define PBIT (p?128:0)
-#define WXY l16(x);l16(y);
-#define RXY e->x=rl16();e->y=rl16();
 static uint8_t Lv[65536];
 uint8_t*Lp=Lv;
 #define l(x) static void l##x(uint##x##_t a){*(uint##x##_t*)Lp=a;Lp+=x/8;}static int##x##_t rl##x(){Lp+=x/8;return*(int##x##_t*)(Lp-x/8);}
 #define lt(t) static void l##t(t a){*(t*)Lp=a;Lp+=sizeof(t);}static t rl##t(){Lp+=sizeof(t);return*(t*)(Lp-sizeof(t));}
 l(8)
 l(16)
-l(32)
 lt(float)
+#define PBIT (p?128:0)
+#define E(x) static void x(uint16_t t
+#define P ,int p
+#define XY ,int16_t x,int16_t y
+#define VD ,float v,float d
+#define T(x) ){l16(t);l8(x);
+#define END }
+#define WVD lfloat(v);lfloat(d);
+#define WXY l16(x);l16(y);
+#define RXY e->x=rl16();e->y=rl16();
+#define RVD v=rlfloat();d=rlfloat();
+#define RF2(v,d) v=rlfloat();d=rlfloat();
+#define EXYV e->xd=cos(d)*v;e->yd=sin(d)*v;
 void mke(){
-	while(T==*(uint16_t*)Lp){
-		float d,v;
+	if(T==*(uint16_t*)Lp){
+		float v,d;
 		uint8_t*LL=Lp;
 		Lp+=2;
 		uint8_t t=rl8();
@@ -21,92 +30,58 @@ void mke(){
 		e->c=T;
 		switch(t&127){
 		default:printf("Unknown E%x\n",t);
-		case(ECAN)
+		case(CAN)
 			e->h=5;
 			RXY
-			v=rlfloat();
-			e->d=rlfloat();
-			e->xd=cos(e->d)*v;
-			e->yd=sin(e->d)*v;
-		case(ETAR)
+			RVD
+			EXYV
+			e->d=d;
+		case(TAR)
 			e->h=32;
 			RXY
 			e->xd=0;
 			e->yd=M_PI;
-		case(EB1)
+		case(B1)
 			e->h=64;
 			e->x=64;
 			e->y=-64;
 			e->xd=0;
-		case(EB2)
+		case(B2)
 			memset(e->a+1,0,19);
-		case(EROT)
+		case(B3)
+			e->h=127;
+			e->x=e->t&128?32:196;
+			e->y=e->t&128?-32:288;
+		case(ROT)
 			e->h=12;
-			RXY
 			e->d=M_PI/2;
-			v=rlfloat();
-			d=rlfloat();
-			e->xd=cos(d)*v;
-			e->yd=sin(d)*v;
-		case(EDOG)
+			RXY
+			RVD
+			EXYV
+		case(DOG)
 			e->h=16;
 			RXY
-			e->xd=rlfloat();
-			e->d=rlfloat();
-		case(EPOO)
+			RF2(e->xd,e->d)
+		case(POO)
 			e->h=16;
 			RXY
-			e->xd=rlfloat();
-			e->d=rlfloat();
+			RF2(e->xd,e->d)
 		}
 		incE(Lp-LL);
 	}
 }
-static void can(uint16_t t,int16_t x,int16_t y,float v,float d){
-	l16(t);
-	l8(ECAN);
-	WXY
-	lfloat(v);
-	lfloat(d);
-}
-static void tar(uint16_t t,int16_t x,int16_t y){
-	l16(t);
-	l8(ETAR);
-	WXY
-}
-static void b1(uint16_t t){
-	l16(t);
-	l8(EB1);
-}
-static void b2(uint16_t t){
-	l16(t);
-	l8(EB2);
-}
-static void rot(uint16_t t,int p,int16_t x,int16_t y,float v,float d){
-	l16(t);
-	l8(PBIT|EROT);
-	WXY
-	lfloat(v);
-	lfloat(d);
-}
-static void dog(uint16_t t,int16_t x,int16_t y,float v,float d){
-	l16(t);
-	l8(EDOG);
-	WXY
-	lfloat(v);
-	lfloat(d);
-}
-static void poo(uint16_t t,int16_t x,int16_t y,float v,float d){
-	l16(t);
-	l8(EPOO);
-	WXY
-	lfloat(v);
-	lfloat(d);
-}
+E(can) XY VD T(CAN) WXY WVD END
+E(tar) XY T(TAR) WXY END
+E(b1) T(B1) END
+E(b2) T(B2) END
+E(b3) P T(PBIT|B3) END
+E(rot) P XY VD T(PBIT|ROT) WXY WVD END
+E(dog) XY VD T(DOG) WXY WVD END
+E(poo) XY VD T(POO) WXY WVD END
 void genL1(){
 	for(int i=0;i<5;i++){
 		can(i*60+5,10,246,1,M_PI*3/2);
-		poo(i*60+15,118,10,1,M_PI/2);
+		can(i*60+15,118,10,1,M_PI/2);
 	}
 	tar(333,80,160);
 	for(int i=0;i<5;i++){
@@ -118,12 +93,16 @@ void genL1(){
 	for(int i=0;i<16;i++){
 		rot(1000+i*60,i&1,i*8,260,2,M_PI*3/2);
 		if(i==8){
-			dog(1000+i*66,32,192,1,0);
-			dog(1000+i*66,96,192,1,M_PI);
+			dog(1000+i*72,32,192,1,0);
+			dog(1001+i*72,96,192,1,M_PI);
 		}
 	}
 	b2(2000);
 	can(2060,64,128,0,M_PI*3/2);
+	for(int i=0;i<8;i++)
+		poo(2100+i*30,64,128,0,M_PI*i/8);
+	b3(3000,0);
+	b3(3000,1);
 	printf("L1: %ld\n",Lp-Lv);
 	Lp=Lv;
 }

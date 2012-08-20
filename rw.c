@@ -64,9 +64,9 @@ static void stepBack(int n){
 			case(25)
 				for(obje*e=E;e<Etop;e++){
 					switch(e->t&127){
-					case(EROT)
+					case(ROT)
 						e->d-=M_PI/(e->t&128?128:-128);
-					case ECAN:
+					case CAN:
 						e->x-=e->xd;
 						e->y-=e->yd;
 					}

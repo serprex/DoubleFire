@@ -119,7 +119,7 @@ void eloop(){
 		float r;
 		int et=!!(e->t&128);
 		switch(e->t&127){
-		case(ECAN)
+		case(CAN)
 			e->x+=e->xd;
 			e->y+=e->yd;
 			et=nerdest(e);
@@ -137,7 +137,7 @@ void eloop(){
 				glColor(red+et);
 				glCirc(e->x,e->y,r);
 			}
-		case(ETAR)
+		case(TAR)
 			r=min(T-e->c,abs(e->h));
 			et=e->h<6?4:rdmg(e->x,e->y,r);
 			if(et)
@@ -156,7 +156,7 @@ void eloop(){
 			}
 			for(int i=0;i<2;i++)
 				xLz(min(T-e->c,120+e->h),e->x,e->y,i?e->yd:e->xd);
-		case(EB1)
+		case(B1)
 			if(e->y<64)
 				add2ey(e);
 			mkbxy(e->c,e->x,e->y,Px[0],Py[0],4);
@@ -176,7 +176,7 @@ void eloop(){
 					float xd=cos(aa)*e->h,yd=sin(aa)*e->h;
 					glLineC(e->x+xd,e->y+yd,e->x-xd,e->y-yd,red+!(e->h&8));
 				}
-		case(EB2)
+		case(B2)
 			for(int y=0;y<4;y++)
 				for(int x=0;x<4;x++){
 					int xx=28+x*(e->a[18]/2-e->a[19]),yy=92+y*(e->a[18]/2-e->a[19]),xy=x+y*4+1;
@@ -202,7 +202,7 @@ void eloop(){
 				ince19(e);
 				if(e->a[19]==24)goto kille;
 			}
-		case(EROT)
+		case(ROT)
 			e->x+=e->xd;
 			e->y+=e->yd;
 			e->d+=M_PI/(et?128:-128);
@@ -219,7 +219,7 @@ void eloop(){
 				for(int i=0;i<3;i++)
 					glLine(e->x+cos(e->d+i*M_PI*2/3)*(32-e->h*3),e->y+sin(e->d+i*M_PI*2/3)*(32-e->h*3),e->x+cos(e->d+i*M_PI*2/3)*32,e->y+sin(e->d+i*M_PI*2/3)*32);
 			}
-		case(EDOG)
+		case(DOG)
 			et=nearest(e);
 			if(dst2(e->x,e->y,Px[et],Py[et])<64){
 				setPx(et,e->x);
@@ -237,7 +237,7 @@ void eloop(){
 				glColor(et==2?wht:red+et);
 				glCirc(e->x,e->y,min(e->h,T-e->c));
 			}
-		case(EPOO)
+		case(POO)
 			et=nearest(e);
 			erotxy(e,Px[et],Py[et],M_PI/64);
 			setexy(e,e->x+cos(e->d)*e->xd,e->y+sin(e->d)*e->xd);
