@@ -1,3 +1,3 @@
 extern uint8_t*Lp;
-void mke();
+void lvstep();
 void genL1();

@@ -8,8 +8,8 @@ typedef struct{
 static frame*rw;
 static int crw=-1,rwp,rwT,welt,cpi=-2,piT,pip,mlen;
 static uint8_t*pin,*mbuf;
-#define w(x) static void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
-#define wt(t) static void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);assert(rw[crw].n>=0);return*(t*)(rw[crw].p+rw[crw].n);}
+#define w(x) static void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);assert(rw[crw].p);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
+#define wt(t) static void w##t(t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+sizeof(t));assert(rw[crw].p);*(t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=sizeof(t);}static t r##t(){rw[crw].n-=sizeof(t);assert(rw[crw].n>=0);return*(t*)(rw[crw].p+rw[crw].n);}
 w(8)
 w(16)
 wt(float)
@@ -20,14 +20,14 @@ static void stepBack(int n){
 		while(rw[crw].n){
 			uint8_t a=r8();
 			switch(a){
-			default:__builtin_unreachable();
-			case(2 ... 3)Px[a-2]=rfloat();
-			case(4 ... 5)Py[a-4]=rfloat();
+			default:assert(0);__builtin_unreachable();
+			case(0 ... 1)Px[a]=rfloat();
+			case(2 ... 3)Py[a-2]=rfloat();
+			case(4)Etop--;
+			case(5)Pe--;
 			case(6)Pe=r8();
 			case(7)Pe++;
-			case(8)
-				Etop--;
-				Lp-=r8();
+			case(8)Lp-=r8();
 			case(9){
 				obje*e=E+r8();
 				*Etop++=*e;
@@ -41,7 +41,7 @@ static void stepBack(int n){
 					b->y-=b->yd;
 				}
 			case(15)Pi++;
-			case(16)Pe--;
+			case(16)Bor--;
 			case(17)PBtop--;
 			case(18 ... 19)E[r8()].a[a]--;
 			case(20){
@@ -55,7 +55,7 @@ static void stepBack(int n){
 				*b=rbxy();
 			}
 			case(22 ... 23)Lzo=a-32;
-			case(24)
+			case(24)printf("onBor\n");
 				Boy=r8();
 				Box=r8();
 				Bor=0;
@@ -113,7 +113,7 @@ static void stepBack(int n){
 				if(y<3)e->a[xy+4]^=1;
 				if(y>0)e->a[xy-4]^=1;
 			}
-			case(35)Bor=r8();
+			case(35)Bor=r8();printf("setBor\n");
 			case(36)E[r8()].h++;
 			}
 		}
@@ -127,6 +127,7 @@ static void stepBack(int n){
 }
 void rwBegin(int isudp){
 	int shift=min(mnT,T)-rwT;
+	assert(shift<=crw+1);
 	if(shift>0){
 		crw-=shift;
 		rwT+=shift;
@@ -134,17 +135,20 @@ void rwBegin(int isudp){
 			free(rw[i].p);
 		memmove(rw,rw+shift,sizeof(frame)*(rwp-=shift));
 	}
+	assert(crw<rwp);
 	if(++crw==rwp){
 		rw=realloc(rw,sizeof(frame)*++rwp);
 		rw[crw].p=0;
 		rw[crw].n=0;
 	}
 	shift=min(T,isudp?min(mnT,moT):mnT)*2-piT;
+	assert(shift<=cpi+2);
 	if(shift>0){
 		cpi-=shift;
 		piT+=shift;
 		memmove(pin,pin+shift,pip-=shift);
 	}
+	assert(cpi<pip);
 	if((cpi+=2)==pip){
 		pin=realloc(pin,pip+=2);
 		memset(pin+cpi,cpi?pin[cpi-2+!Pt]&127:0,2);
@@ -163,19 +167,23 @@ void rwInput(int isudp){
 		nsend(pin+cpi+Pt,1);
 	}
 }
-void setBor(int b){
+void incBor(){
+	w8(16);
+	Bor++;
+}
+void setBor(uint8_t b){
 	w8(Bor);
 	w8(35);
 	Bor=b;
 }
 void setPx(int i,float x){
 	wfloat(Px[i]);
-	w8(2+i);
+	w8(i);
 	Px[i]=x;
 }
 void setPy(int i,float y){
 	wfloat(Py[i]);
-	w8(4+i);
+	w8(2+i);
 	Py[i]=y;
 }
 void setPf(int i,uint8_t f){
@@ -187,6 +195,10 @@ void onPf(int i){
 	w8(10+i);
 	Pf[i]=1;
 }
+void incPe(){
+	w8(5);
+	Pe++;
+}
 void setPe(int8_t e){
 	w8(Pe);
 	w8(6);
@@ -195,10 +207,6 @@ void setPe(int8_t e){
 void decPe(){
 	w8(7);
 	Pe--;
-}
-void incPe(){
-	w8(16);
-	Pe++;
 }
 void onLzo(){
 	w8(22);
@@ -265,10 +273,13 @@ void incB(){
 	w8(26);
 	Btop++;
 }
-void incE(uint8_t l){
+void incE(){
+	w8(4);
+	Etop++;
+}
+void marklp(uint8_t l){
 	w8(l);
 	w8(8);
-	Etop++;
 }
 void marke(){
 	w8(25);

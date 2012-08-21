@@ -12,7 +12,7 @@ typedef struct{
 	uint16_t p;
 }bxy;
 enum{
-	CAN,TAR,ROT,DOG,POO,B1,B2,B3
+	MIS,CAN,TAR,ROT,DOG,POO,B1,B2,B3
 };
 extern obje E[64],*Etop;
 extern bxy B[8192],*Btop,PB[256],*PBtop;

@@ -27,12 +27,12 @@ E(b3) P T(PBIT|B3) END
 E(rot) P XY VD T(PBIT|ROT) WXY WVD END
 E(dog) XY VD T(DOG) WXY WVD END
 E(poo) XY VD T(POO) WXY WVD END
-void mke(){
+void lvstep(){
 	if(T==*(uint16_t*)Lp){
 		float v,d;
 		uint8_t*LL=Lp;
 		Lp+=2;
-		obje*e=Etop;
+		obje*e=Etop++;
 		e->t=r8();
 		e->c=T;
 		switch(e->t&127){
@@ -48,17 +48,6 @@ void mke(){
 			RXY
 			e->xd=0;
 			e->yd=M_PI;
-		case(B1)
-			e->h=64;
-			e->x=64;
-			e->y=-64;
-			e->xd=0;
-		case(B2)
-			memset(e->a+1,0,19);
-		case(B3)
-			e->h=127;
-			e->x=e->t&128?32:196;
-			e->y=e->t&128?-32:288;
 		case(ROT)
 			e->h=12;
 			e->d=M_PI/2;
@@ -73,12 +62,24 @@ void mke(){
 			e->h=16;
 			RXY
 			RF2(e->xd,e->d)
+		case(B1)
+			e->h=64;
+			e->x=64;
+			e->y=-64;
+			e->xd=0;
+		case(B2)
+			memset(e->a+1,0,19);
+		case(B3)
+			e->h=127;
+			e->x=e->t&128?32:96;
+			e->y=e->t&128?-32:288;
+			e->d=0;
 		}
-		incE(Lp-LL);
+		marklp(Lp-LL);
 	}
 }
 void genL1(){
-	for(int i=0;i<5;i++){
+	/*for(int i=0;i<5;i++){
 		can(i*60+5,10,246,1,M_PI*3/2);
 		can(i*60+15,118,10,1,M_PI/2);
 	}
@@ -99,9 +100,9 @@ void genL1(){
 	b2(2000);
 	can(2060,64,128,0,M_PI*3/2);
 	for(int i=0;i<8;i++)
-		poo(2100+i*30,64,128,0,M_PI*i/8);
-	b3(3000,0);
-	b3(3000,1);
+		poo(2100+i*30,64,128,0,M_PI*i/8);*/
+	b3(30,0);
+	b3(31,1);
 	printf("L1: %ld\n",Lp-Lv);
 	Lp=Lv;
 }

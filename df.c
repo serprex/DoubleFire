@@ -1,12 +1,11 @@
 #include "df.h"
 const uint8_t col[13]={255,0,0,255,255,255,63,47,95,255,0,0,0};
 colt red=col,blu=col+1,wht=col+3,shr=col+5,shb=col+7,blk=col+10;
-uint8_t Pt,Pf[2],Pi;
+uint8_t Pt,Pf[2],Pi,Lzo,Box,Boy,Bor;
 int8_t Pe=127;
 int Ph[2];
 uint16_t Php[2];
 float Px[2]={32,96},Py[2]={96,96},Lzr[32][2];
-int Lzo,Box,Boy,Bor;
 int main(int argc,char**argv){
 	sprInit();
 	int isudp;
@@ -31,10 +30,10 @@ int main(int argc,char**argv){
 			setPx(1,20);
 			setPe(127);
 		}
-		mke();
+		lvstep();
 		if(Bor){
 			if(Bor==24)setBor(0);
-			else setBor(Bor+1);
+			else incBor();
 		}
 		for(int i=0;i<2;i++){
 			float Pxx=(gD(gpin(i))-gA(gpin(i)))*2,Pyy=(gW(gpin(i))-gS(gpin(i)))*2;
@@ -77,20 +76,18 @@ int main(int argc,char**argv){
 								Lzr[i][1]=Py[1]-4;
 							}
 					}
-				}else(!Bor)
-					onBor();
+				}else(!Bor)onBor();
 			}else(Lzo&&i)
 				offLzo();
 		}
 		if(PBtop>PB)markpb();
 		for(bxy*b=PB;b<PBtop;b++){
-		pbagain:
+			if(0)killpb:if(killpb(b))break;
 			b->x+=b->xd;
 			b->y+=b->yd;
-			if(b->y<0||b->x<0||b->x>128||b->y>256){
-				if(killpb(b))break;
-				goto pbagain;
-			}else(T==MT){
+			if(b->y<0||b->x<0||b->x>128||b->y>256)
+				goto killpb;
+			else(T==MT){
 				glColor(red+b->p);
 				glRect(b->x-1,b->y-1,b->x+1,b->y+1);
 				glColor(b->p?wht:blk);

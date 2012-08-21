@@ -6,12 +6,11 @@
 #include <assert.h>
 typedef const uint8_t*const colt;
 extern uint16_t T,MT;
-extern uint8_t Pf[2],Pi,Pt;
+extern uint8_t Pf[2],Pi,Pt,Lzo,Box,Boy,Bor;
 extern int8_t Pe;
 extern int Ph[2];
 extern uint16_t Php[2];
 extern float Px[2],Py[2],Lzr[32][2];
-extern int Lzo,Box,Boy,Bor;
 extern const uint8_t col[13];
 extern colt red,blu,wht,shr,shb,blk;
 #include "lv.h"
