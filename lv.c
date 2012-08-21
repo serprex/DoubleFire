@@ -8,13 +8,14 @@ w(8)
 w(16)
 wt(float)
 enum{P=1,XY=2,VD=4,RXYV=8,RXVD=16};
-static const uint8_t eopt[]={
-	[CAN]=XY|VD|RXYV,
-	[TAR]=XY,
-	[ROT]=P|XY|VD|RXYV,
-	[DOG]=XY|VD|RXVD,
-	[POO]=XY|VD|RXVD,
-	[B3]=P,
+static const struct{uint8_t f,h;}eopt[]={
+	[CAN]={XY|VD|RXYV,5},
+	[TAR]={XY,32},
+	[ROT]={P|XY|VD|RXYV,12},
+	[DOG]={XY|VD|RXVD,16},
+	[POO]={XY|VD|RXVD,16},
+	[B1]={0,64},
+	[B3]={P,127},
 };
 static void e(uint8_t t,uint16_t T,...){
 	va_list vl;
@@ -39,7 +40,8 @@ void lvstep(){
 		obje*e=Etop;
 		e->t=r8();
 		e->c=T;
-		uint8_t eo=eopt[e->t&127];
+		e->h=eopt[e->t&127].h;
+		uint8_t eo=eopt[e->t&127].f;
 		if(eo&XY){
 			e->x=r16();
 			e->y=r16();
@@ -56,30 +58,20 @@ void lvstep(){
 			}
 		}
 		switch(e->t&127){
-		default:printf("Unknown E%x\n",e->t);
 		case(CAN)
-			e->h=5;
 			e->d=d;
 		case(TAR)
-			e->h=32;
 			e->xd=0;
 			e->yd=M_PI;
 		case(ROT)
-			e->h=12;
 			e->d=M_PI/2;
-		case(DOG)
-			e->h=16;
-		case(POO)
-			e->h=16;
 		case(B1)
-			e->h=64;
 			e->x=64;
 			e->y=-64;
 			e->xd=0;
 		case(B2)
-			memset(e->a+1,0,19);
+			memset(e->a+2,0,18);
 		case(B3)
-			e->h=127;
 			e->x=e->t&128?32:96;
 			e->y=e->t&128?-32:288;
 			e->d=0;
