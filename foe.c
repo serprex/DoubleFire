@@ -158,7 +158,7 @@ void eloop(){
 			et=e->h<6?4:rdmg(x,y,r);
 			if(et)
 				seteh(e,e->h-et);
-			setexdyd(e,rrotxy(e->xd,x,y,Px[0],Py[0],M_PI/64),rrotxy(e->yd,x,y,Px[1],Py[1],M_PI/64));
+			setexdyd(e,rrotxy(e->xd,x,y,Px[0],Py[0],M_PI/72),rrotxy(e->yd,x,y,Px[1],Py[1],M_PI/72));
 			if(e->h<-120)goto kille;
 			if(T==MT){
 				glColor(wht);
@@ -194,6 +194,11 @@ void eloop(){
 			if(dst2(x,y,Px[et],Py[et])<64){
 				setPx(et,e->x);
 				setPy(et,e->y);
+				if(!et)setBor(0);
+				if(!(T&7)){
+					deceh(e);
+					if(!e->h)goto kille;
+				}
 			}else{
 				erotxy(e,Px[et],Py[et],M_PI/32);
 				setexy(e,x+=cos(e->d)*e->xd,y+=sin(e->d)*e->xd);
@@ -209,7 +214,7 @@ void eloop(){
 			}
 		case(POO)
 			et=nearest(e);
-			erotxy(e,Px[et],Py[et],M_PI/64);
+			erotxy(e,Px[et],Py[et],M_PI/48);
 			setexy(e,x+=cos(e->d)*e->xd,y+=sin(e->d)*e->xd);
 			if(!(T-e->c&7))
 				mkbd(e->c,x,y,0,0);
@@ -247,8 +252,8 @@ void eloop(){
 			for(int y=0;y<4;y++)
 				for(int x=0;x<4;x++){
 					int xx=28+x*(e->a[18]/2-e->a[19]),yy=92+y*(e->a[18]/2-e->a[19]),xy=x+y*4+1;
-					if((!(T+x+y*3&15))&&(x==0&&y==0||x==3&&y==0||x==3&&y==3||x==0&&y==3))
-						mkbxy(e->c+x+y*4,xx,yy,Px[e->a[xy]],Py[e->a[xy]],1);
+					if((!(T+x+y*3&15))&&(x==0&&y==0||x==3&&y==3))
+						mkbxy(e->c+xy,xx,yy,Px[e->a[xy]],Py[e->a[xy]],1);
 					if(getb(rdmg2(xx,yy,8),e->a[xy]))
 						eb2xy(e,xy,x,y);
 					if(T==MT){
@@ -256,18 +261,19 @@ void eloop(){
 						glCirc(xx,yy,e->a[18]/4-e->a[19]/2);
 					}
 				}
-			et=0;
 			for(int i=0;i<16;i++)
 				if(!e->a[i+1]){
-					et=1;
-					break;
+					if(e->a[18]<48)
+						ince18(e);
+					goto b2nodeath;
 				}
-			if(et){
-				if(e->a[18]<48)
-					ince18(e);
-			}else{
-				ince19(e);
-				if(e->a[19]==24)goto kille;
+			ince19(e);
+			if(e->a[19]==24)goto kille;
+			b2nodeath:if(!(T&127)){
+				obje*m=mke(DOG,64,128);
+				m->h=16;
+				m->xd=.5;
+				m->d=M_PI*3/2;
 			}
 		case(B3)
 			if(x==32&&y==32)y+=2;

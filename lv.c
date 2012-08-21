@@ -32,7 +32,7 @@ void lvstep(){
 		float v,d;
 		uint8_t*LL=Lp;
 		Lp+=2;
-		obje*e=Etop++;
+		obje*e=Etop;
 		e->t=r8();
 		e->c=T;
 		switch(e->t&127){
@@ -76,10 +76,10 @@ void lvstep(){
 			e->d=0;
 		}
 		marklp(Lp-LL);
-	}
+	}else assert(T<*(uint16_t*)Lp||!*(uint16_t*)Lp);
 }
 void genL1(){
-	/*for(int i=0;i<5;i++){
+	for(int i=0;i<5;i++){
 		can(i*60+5,10,246,1,M_PI*3/2);
 		can(i*60+15,118,10,1,M_PI/2);
 	}
@@ -91,18 +91,18 @@ void genL1(){
 	tar(666,48,160);
 	b1(721);
 	for(int i=0;i<16;i++){
-		rot(1000+i*60,i&1,i*8,260,2,M_PI*3/2);
+		rot(900+i*60,i&1,i*8,260,2,M_PI*3/2);
+		if(i==2)
+			dog(910+i*60,64,0,2,M_PI/2);
 		if(i==8){
-			dog(1000+i*72,32,192,1,0);
-			dog(1001+i*72,96,192,1,M_PI);
+			dog(915+i*60,32,192,1,0);
+			dog(920+i*60,96,192,1,M_PI);
 		}
 	}
 	b2(2000);
 	can(2060,64,128,0,M_PI*3/2);
-	for(int i=0;i<8;i++)
-		poo(2100+i*30,64,128,0,M_PI*i/8);*/
-	b3(30,0);
-	b3(31,1);
+	b3(3000,0);
+	b3(3001,1);
 	printf("L1: %ld\n",Lp-Lv);
 	Lp=Lv;
 }

@@ -23,11 +23,11 @@ static void stepBack(int n){
 			default:assert(0);__builtin_unreachable();
 			case(0 ... 1)Px[a]=rfloat();
 			case(2 ... 3)Py[a-2]=rfloat();
-			case(4)Etop--;
-			case(5)Pe--;
-			case(6)Pe=r8();
-			case(7)Pe++;
-			case(8)Lp-=r8();
+			case(4)Pe--;
+			case(5)Pe=r8();
+			case(6)Pe++;
+			case(7)Lp-=r8();
+			case 8:Etop--;
 			case(9){
 				obje*e=E+r8();
 				*Etop++=*e;
@@ -54,8 +54,8 @@ static void stepBack(int n){
 				*Btop++=*b;
 				*b=rbxy();
 			}
-			case(22 ... 23)Lzo=a-32;
-			case(24)printf("onBor\n");
+			case(22 ... 23)Lzo=a-22;
+			case(24)
 				Boy=r8();
 				Box=r8();
 				Bor=0;
@@ -113,7 +113,7 @@ static void stepBack(int n){
 				if(y<3)e->a[xy+4]^=1;
 				if(y>0)e->a[xy-4]^=1;
 			}
-			case(35)Bor=r8();printf("setBor\n");
+			case(35)Bor=r8();
 			case(36)E[r8()].h++;
 			}
 		}
@@ -196,16 +196,16 @@ void onPf(int i){
 	Pf[i]=1;
 }
 void incPe(){
-	w8(5);
+	w8(4);
 	Pe++;
 }
 void setPe(int8_t e){
 	w8(Pe);
-	w8(6);
+	w8(5);
 	Pe=e;
 }
 void decPe(){
-	w8(7);
+	w8(6);
 	Pe--;
 }
 void onLzo(){
@@ -274,12 +274,13 @@ void incB(){
 	Btop++;
 }
 void incE(){
-	w8(4);
+	w8(8);
 	Etop++;
 }
 void marklp(uint8_t l){
 	w8(l);
-	w8(8);
+	w8(7);
+	Etop++;
 }
 void marke(){
 	w8(25);
