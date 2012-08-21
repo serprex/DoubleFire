@@ -9,12 +9,6 @@ struct timeval timeout={};
 	FD_SET(udp,&fds);
     return select(0,&fds,0,0,&timeout);
 }
-int psize(){
-	u_long r;
-	ioctlsocket(udp,FIONREAD,&r);
-	uint8_t b[r];
-	return recv(udp,b,r,MSG_PEEK);
-}
 #else
 #include <sys/unistd.h>
 #include <sys/socket.h>
@@ -24,16 +18,6 @@ int psize(){
 static struct pollfd pfd={.events=POLLIN};
 int any(){
 	return poll(&pfd,1,0);
-}
-int psize(){
-	int r;
-	ioctl(udp,FIONREAD,&r);
-	#ifdef __APPLE__
-	uint8_t b[r];
-	return recv(udp,b,r,MSG_PEEK);
-	#else
-	return r;
-	#endif
 }
 #endif
 int nsend(void*p,int n){

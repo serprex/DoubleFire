@@ -15,7 +15,6 @@ int main(int argc,char**argv){
 		if(argc==3)Pt=atoi(argv[2]);
 		isudp=netinit(argv[1]);
 	}
-	if(isudp)rwInit();
 	genL1();
 	for(;;){
 		rwBegin(isudp);

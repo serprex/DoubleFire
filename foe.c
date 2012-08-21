@@ -276,9 +276,9 @@ void eloop(){
 			setexy(e,x,y);
 			seted(e,e->d+M_PI/32);
 			xLz(min(T-e->c,127+e->h),x,y,dir(x,y,Px[!et],Py[!et]));
-			if((T-e->c&63)>23&&(T-e->c&63)<49){
+			if((T-e->c&63)>20)
 				mkbd(e->c,x,y,3,e->d);
-			}else(!((T-e->c)&63)){
+			else(!((T-e->c)&63)){
 				obje*m=mke(e->t&128|MIS,x,y);
 				m->h=0;
 				m->xd=cos(dir(x,y,Px[et],Py[et]));
@@ -291,7 +291,7 @@ void eloop(){
 				}
 			if(!(T&7)&&rdmg(x,y,e->h))deceh(e);
 			if(e->h<24)deceh(e);
-			if(!e->h)goto kille; //Should explode
+			if(!e->h)goto kille;
 			if(T==MT){
 				rndcol();
 				glCirc(e->x,e->y,e->h>>1);

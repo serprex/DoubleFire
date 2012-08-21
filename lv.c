@@ -21,12 +21,12 @@ static void e(uint8_t t,uint16_t T,...){
 	va_list vl;
 	va_start(vl,T);
 	w16(T);
-	w8(((eopt[t]&P)&&!va_arg(vl,int)?128:0)|t);
-	if(eopt[t]&XY){
+	w8(((eopt[t].f&P)&&!va_arg(vl,int)?128:0)|t);
+	if(eopt[t].f&XY){
 		w16(va_arg(vl,int));
 		w16(va_arg(vl,int));
 	}
-	if(eopt[t]&VD){
+	if(eopt[t].f&VD){
 		wfloat(va_arg(vl,double));
 		wfloat(va_arg(vl,double));
 	}
@@ -39,8 +39,8 @@ void lvstep(){
 		Lp+=2;
 		obje*e=Etop;
 		e->t=r8();
-		e->c=T;
 		e->h=eopt[e->t&127].h;
+		e->c=T;
 		uint8_t eo=eopt[e->t&127].f;
 		if(eo&XY){
 			e->x=r16();
