@@ -124,17 +124,6 @@ void eloop(){
 		float x=e->x,y=e->y,r;
 		int et=!!(e->t&128);
 		switch(e->t&127){
-		case(MIS)
-			seteh(e,e->h+(e->h<32?2:0));
-			if(e->h>12)
-				setexy(e,x+=e->xd*(e->h-8)/16,y+=e->yd*(e->h-8)/16);
-			if(x+e->h<0||x-e->h>128||y+e->h<0||y-e->h>256)goto kille;
-			for(int i=0;i<2;i++)
-				if(dst2(x,y,Px[i],Py[i])<sqr(e->h))Ph[i]--;
-			if(T==MT){
-				glColor(red+et);
-				glCirc(x,y,e->h);
-			}
 		case(CAN)
 			e->x=x+=e->xd;
 			e->y=y+=e->yd;
@@ -306,6 +295,17 @@ void eloop(){
 			if(T==MT){
 				rndcol();
 				glCirc(e->x,e->y,e->h>>1);
+			}
+		case(MIS)
+			seteh(e,e->h+(e->h<32?2:0));
+			if(e->h>12)
+				setexy(e,x+=e->xd*(e->h-8)/16,y+=e->yd*(e->h-8)/16);
+			if(x+e->h<0||x-e->h>128||y+e->h<0||y-e->h>256)goto kille;
+			for(int i=0;i<2;i++)
+				if(dst2(x,y,Px[i],Py[i])<sqr(e->h))Ph[i]--;
+			if(T==MT){
+				glColor(red+et);
+				glCirc(x,y,e->h);
 			}
 		}
 	}
