@@ -8,22 +8,15 @@ uint16_t Php[2];
 float Px[2]={32,96},Py[2]={96,96},Lzr[32][2];
 int main(int argc,char**argv){
 	sprInit();
-	int isudp;
 	if(argc<2)
-		isudp=sprMenu();
+		sprMenu();
 	else{
 		if(argc==3)Pt=atoi(argv[2]);
-		isudp=netinit(argv[1]);
+		netinit(argv[1]);
 	}
 	genL1();
 	for(;;){
-		rwBegin(isudp);
-		if(T==MT){
-			rwInput(isudp);
-			sprBegin();
-			notex();
-			disableBlend();
-		}
+		rwBegin();
 		if(Pe<0){
 			setPx(0,20);
 			setPx(1,20);
@@ -62,22 +55,15 @@ int main(int argc,char**argv){
 			if(gZ(gpin(i))){
 				if(!Pf[i])
 					onPf(i);
-			}else{
-				setPf(i,0);
-			}
+			}else setPf(i,0);
 			if(gX(gpin(i))){
 				if(i){
 					if(!Lzo){
 						onLzo();
-						if(T==MT)
-							for(int i=0;i<32;i++){
-								Lzr[i][0]=Px[1];
-								Lzr[i][1]=Py[1]-4;
-							}
+						if(T==MT)setLzr();
 					}
 				}else(!Bor)onBor();
-			}else(Lzo&&i)
-				offLzo();
+			}else(Lzo&&i)offLzo();
 		}
 		if(PBtop>PB)markpb();
 		for(bxy*b=PB;b<PBtop;b++){
@@ -95,7 +81,6 @@ int main(int argc,char**argv){
 		}
 		Ph[0]=Ph[1]=2;
 		Php[0]=Php[1]=0;
-		if(T==MT)rndcol();
 		eloop();
 		if(Pi)
 			decPi();
@@ -116,13 +101,10 @@ int main(int argc,char**argv){
 			glRect(128,0,160,256);
 			rndcol();
 			glRect(128,0,136,Pe*2);
-			rwDrawLag(isudp);
+			rwDrawLag();
 			enableBlend();
 			if(Lzo){
-				memmove(Lzr+1,Lzr,248);
-				int r=rnd();
-				Lzr[0][0]=Px[1]-1+((r>>2)%3);
-				Lzr[0][1]=Py[1]-3+(r&3);
+				pushLzr();
 				glLzr();
 			}
 			retex();
@@ -132,6 +114,6 @@ int main(int argc,char**argv){
 			MT++;
 		}
 		T++;
-		rwEnd(isudp);
+		rwEnd();
 	}
 }

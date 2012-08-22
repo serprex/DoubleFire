@@ -15,7 +15,7 @@ enum{
 	CAN,TAR,ROT,DOG,POO,B1,B2,B3,MIS
 };
 extern obje E[64],*Etop;
-extern bxy B[8192],*Btop,PB[256],*PBtop;
+extern bxy B[4096],*Btop,PB[48],*PBtop;
 void mkpb(int p,float x,float y,float xd,float yd);
 void mkb(int p,float x,float y,float xd,float yd);
 void mkbd(int p,float x,float y,float v,float d);

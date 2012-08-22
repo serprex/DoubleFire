@@ -89,10 +89,10 @@ void tfChar(float x,float y,int c){
 		for(int i=0;i<5;i++){
 			int bit=(c=='t'?110:c=='.'?100:(c-'0')*10)+j*2;
 			if((49727>>5*((abc[bit>>3]>>(bit&7))&3))&1<<i){
-				glVertex2f(x+i,y+j);
-				glVertex2f(x+i+1,y+j);
-				glVertex2f(x+i+1,y+j+1);
-				glVertex2f(x+i,y+j+1);
+				glVertex2f(x+i,y-j);
+				glVertex2f(x+i+1,y-j);
+				glVertex2f(x+i+1,y-j+1);
+				glVertex2f(x+i,y-j+1);
 			}
 		}
 	glEnd();
@@ -228,7 +228,7 @@ void sprInit(){
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	glTexImage2D(GL_TEXTURE_2D,0,SF,SW,SH,0,SF,GL_UNSIGNED_BYTE,S);
 }
-int sprMenu(){
+void sprMenu(){
 	char ipstr[17],*ipstrp=ipstr,lch;
 	do{
 		int in=sprInput();
@@ -282,7 +282,7 @@ void sprEnd(float fps){
 int sprInput(){
 	glfwPollEvents();
 	if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){
-		nsend(0,0);
+		if(isudp)nsend(0,0);
 		exit(0);
 	}
 	return glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;

@@ -38,10 +38,10 @@ void lvstep(){
 		uint8_t*LL=Lp;
 		Lp+=2;
 		obje*e=Etop;
-		e->t=r8();
-		e->h=eopt[e->t&127].h;
+		uint8_t et127=(e->t=r8())&127;
+		e->h=eopt[et127].h;
 		e->c=T;
-		uint8_t eo=eopt[e->t&127].f;
+		uint8_t eo=eopt[et127].f;
 		if(eo&XY){
 			e->x=r16();
 			e->y=r16();
@@ -57,7 +57,7 @@ void lvstep(){
 				e->d=d;
 			}
 		}
-		switch(e->t&127){
+		switch(et127){
 		case(CAN)
 			e->d=d;
 		case(TAR)
@@ -73,7 +73,7 @@ void lvstep(){
 			memset(e->a+2,0,18);
 		case(B3)
 			e->x=e->t&128?32:96;
-			e->y=e->t&128?-32:288;
+			e->y=e->t&128?-64:320;
 			e->d=0;
 		}
 		marklp(Lp-LL);

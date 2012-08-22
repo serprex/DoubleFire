@@ -1,4 +1,5 @@
 #include "df.h"
+int isudp;
 static int udp;
 #ifdef _WIN32
 #include <winsock2.h>
@@ -26,7 +27,7 @@ int nsend(void*p,int n){
 int nrecv(void*p,int n){
 	return recv(udp,p,n,0);
 }
-int netinit(char*ipstr){
+void netinit(char*ipstr){
 	#ifdef _WIN32
 	WSADATA WsaData;
 	WSAStartup(MAKEWORD(2,2),&WsaData);
@@ -58,12 +59,11 @@ int netinit(char*ipstr){
 	#ifndef _WIN32
 	pfd.fd=udp;
 	#endif
-	if(type==SOCK_STREAM){
+	if(isudp=type==SOCK_STREAM){
 		if(ipstr){
 			nrecv(&Pt,1);
 			Pt^=1;
 		}else nsend(&Pt,1);
-		return 0;
 	}
 	notex();
 	for(;;){
@@ -80,5 +80,4 @@ int netinit(char*ipstr){
 		sprEnd(1./5);
 	}
 	retex();
-	return 1;
 }

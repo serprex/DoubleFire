@@ -1,22 +1,19 @@
 #include "df.h"
 obje E[64],*Etop=E;
-bxy B[8192],*Btop=B,PB[256],*PBtop=PB;
-void mkpb(int p,float x,float y,float xd,float yd){
-	bxy*b=PBtop;
+bxy B[4096],*Btop=B,PB[48],*PBtop=PB;
+static void initbxy(bxy*b,int p,float x,float y,float xd,float yd){
 	b->p=p;
 	b->x=x;
 	b->y=y;
 	b->xd=xd;
 	b->yd=yd;
+}
+void mkpb(int p,float x,float y,float xd,float yd){
+	initbxy(PBtop,p,x,y,xd,yd);
 	incPB();
 }
 void mkb(int p,float x,float y,float xd,float yd){
-	bxy*b=Btop;
-	b->p=p;
-	b->x=x;
-	b->y=y;
-	b->xd=xd;
-	b->yd=yd;
+	initbxy(Btop,p,x,y,xd,yd);
 	incB();
 }
 void mkbd(int p,float x,float y,float v,float d){
@@ -183,11 +180,6 @@ void eloop(){
 			if(dst2(x,y,Px[et],Py[et])<64){
 				setPx(et,e->x);
 				setPy(et,e->y);
-				if(!et)setBor(0);
-				if(!(T&7)){
-					deceh(e);
-					if(!e->h)goto kille;
-				}
 			}else{
 				erotxy(e,Px[et],Py[et],M_PI/32);
 				setexy(e,x+=cos(e->d)*e->xd,y+=sin(e->d)*e->xd);
@@ -224,15 +216,15 @@ void eloop(){
 			mkbxy(e->c+1,x,y,Px[1],Py[1],4);
 			mkbxy(e->c+2,x,y,Px[!(e->h&8)],Py[!(e->h&8)],1);
 			et=rdmg2(x,y,e->h);
-			if((e->h&7)!=7&&getb(et,e->h&8)){
+			if((e->h&7)!=7&&getb(et,e->h&8))
 				seteh(e,e->h+1);
-			}else(getb(et,!(e->h&8))||e->h<7){
+			else(getb(et,!(e->h&8))||e->h<7){
 				deceh(e);
 				if(!e->h)goto kille;
 			}
 			if(T==MT)
-				for(double a=0;a<M_PI;a+=M_PI/48){
-					double aa=a+T/256.;
+				for(float a=0;a<M_PI;a+=M_PI/48){
+					float aa=a+T/256.;
 					rndrndcol();
 					float xd=cos(aa)*e->h,yd=sin(aa)*e->h;
 					glLineC(x+xd,y+yd,x-xd,y-yd,red+!(e->h&8));

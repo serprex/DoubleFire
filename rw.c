@@ -115,6 +115,15 @@ static void stepBack(int n){
 			}
 			case(35)Bor=r8();
 			case(36)E[r8()].h++;
+			case(37)
+				for(int i=31;i>-1;i--){
+					Lzr[i][1]=rfloat();
+					Lzr[i][0]=rfloat();
+				}
+			case(38)
+				memmove(Lzr,Lzr+1,248);
+				Lzr[31][1]=rfloat();
+				Lzr[31][0]=rfloat();
 			}
 		}
 		assert(T);
@@ -304,12 +313,30 @@ void ince19(obje*e){
 	w8(19);
 	e->a[19]++;
 }
-void rwDrawLag(int isudp){
+void setLzr(){
+	for(int i=0;i<32;i++){
+		wfloat(Lzr[i][0]);
+		wfloat(Lzr[i][1]);
+		Lzr[i][0]=Px[1];
+		Lzr[i][1]=Py[1]-4;
+	}
+	w8(37);
+}
+void pushLzr(){
+	wfloat(Lzr[31][0]);
+	wfloat(Lzr[31][1]);
+	w8(38);
+	memmove(Lzr+1,Lzr,248);
+	int r=rnd();
+	Lzr[0][0]=Px[1]-1+((r>>2)%3);
+	Lzr[0][1]=Py[1]-3+(r&3);
+}
+void rwDrawLag(){
 	glRect(136,64,144,64+T-mxT);
 	glRect(144,64,152,64+T-mnT);
 	if(isudp)glRect(152,64,160,64+T-moT);
 }
-void rwBegin(int isudp){
+void rwBegin(){
 	int shift=min(mnT,T)-rwT;
 	assert(shift<=crw+1);
 	if(shift>0){
@@ -338,20 +365,23 @@ void rwBegin(int isudp){
 		memset(pin+cpi,cpi?pin[cpi-2+!Pt]&127:0,2);
 	}
 	printf("%s%d %.2x:%.2x  %.2x:%.2x %d:%d:%d %d,%d %d,%d   %d:%d:%d\n",T==MT?"==":"-",T,pin[cpi],pin[cpi+1],Pe,Pi,Btop-B,Etop-E,PBtop-PB,(int)Px[0],(int)Py[0],(int)Px[1],(int)Py[1],mnT,moT,mxT);
-}
-void rwInput(int isudp){
-	if(isudp){
-		*(uint16_t*)(mbuf)=mnT;
-		*(uint16_t*)(mbuf+2)=T;
-		mbuf[4]=pin[cpi+Pt]=sprInput();
-		nsend(mbuf,mlen);
-		mlen=5;
-	}else{
-		pin[cpi+Pt]=sprInput();
-		nsend(pin+cpi+Pt,1);
+	if(T==MT){
+		if(isudp){
+			*(uint16_t*)(mbuf)=mnT;
+			*(uint16_t*)(mbuf+2)=T;
+			mbuf[4]=pin[cpi+Pt]=sprInput();
+			nsend(mbuf,mlen);
+			mlen=5;
+		}else{
+			pin[cpi+Pt]=sprInput();
+			nsend(pin+cpi+Pt,1);
+		}
+		sprBegin();
+		notex();
+		disableBlend();
 	}
 }
-void rwEnd(int isudp){
+void rwEnd(){
 	while(any()){
 		if(isudp){
 			uint8_t p[8];

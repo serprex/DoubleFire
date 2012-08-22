@@ -10,7 +10,7 @@ void glLineC(float x1,float y1,float x2,float y2,colt c);
 void glTriangle(float,float,float,float,float,float);
 void glLzr();
 void sprInit();
-int sprMenu();
+void sprMenu();
 void sprBegin();
 void sprEnd(float);
 int sprInput();
