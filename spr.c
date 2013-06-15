@@ -1,6 +1,7 @@
 #include "df.h"
 #include "tgen.h"
-#include <GL/glfw.h>
+#include <GLFW/glfw3.h>
+#include <winix/time.h>
 #define XXX 0
 #define XOX 1
 #define OOX 2
@@ -105,6 +106,7 @@ static struct spr{
 };
 static uint8_t rcol[4];
 static GLuint Stx;
+static GLFWwindow*wnd;
 void notex(){
 	glBindTexture(GL_TEXTURE_2D,0);
 }
@@ -216,8 +218,8 @@ uint32_t rnd(){
 }
 void sprInit(){
 	glfwInit();
-	glfwDisable(GLFW_AUTO_POLL_EVENTS);
-	glfwOpenWindow(320,512,0,0,0,0,0,0,GLFW_WINDOW);
+	wnd=glfwCreateWindow(320,512,0,0,0);
+	glfwMakeContextCurrent(wnd);
 	glOrtho(0,160,0,256,1,-1);
 	glEnable(GL_TEXTURE_2D);
 	glEnable(GL_BLEND);
@@ -235,14 +237,14 @@ void sprMenu(){
 		if(gA(in))Pt=0;
 		else(gD(in))Pt=1;
 		char llch=lch;
-		if(glfwGetKey(GLFW_KEY_BACKSPACE)&&ipstrp>ipstr)
+		if(glfwGetKey(wnd,GLFW_KEY_BACKSPACE)&&ipstrp>ipstr)
 			ipstrp--;
 		else(ipstrp-ipstr<17){
-			if(glfwGetKey('T'))lch=*ipstrp++='t';
-			else(glfwGetKey('.'))lch=*ipstrp++='.';
+			if(glfwGetKey(wnd,'T'))lch=*ipstrp++='t';
+			else(glfwGetKey(wnd,'.'))lch=*ipstrp++='.';
 			else{
 				for(int i='0';i<='9';i++)
-					if(glfwGetKey(i)){
+					if(glfwGetKey(wnd,i)){
 						lch=*ipstrp++=i;
 						goto lchset;
 					}
@@ -264,7 +266,7 @@ void sprMenu(){
 		retex();
 		drawSpr(Pt?Ika:Kae,16,16,0,Pt?shb:shr);
 		sprEnd(1./20);
-	}while(!glfwGetKey(GLFW_KEY_ENTER));
+	}while(!glfwGetKey(wnd,GLFW_KEY_ENTER));
 	*ipstrp=0;
 	return netinit(ipstr);
 }
@@ -273,17 +275,17 @@ void sprBegin(){
 	glClear(GL_COLOR_BUFFER_BIT);
 }
 void sprEnd(float fps){
-	glfwSwapBuffers();
-	double gT=fps-glfwGetTime();
-	if(gT>0)glfwSleep(gT);
+	glfwSwapBuffers(wnd);
+	double gT=fps-timesince();
+	if(gT>0)sleepd(gT);
 	else printf("sleep %f\n",gT);
-	glfwSetTime(0);
+	inittime();
 }
 int sprInput(){
 	glfwPollEvents();
-	if(glfwGetKey(GLFW_KEY_ESC)||!glfwGetWindowParam(GLFW_OPENED)){
+	if(glfwGetKey(wnd,GLFW_KEY_ESCAPE)||glfwWindowShouldClose(wnd)){
 		if(isudp)nsend(0,0);
 		exit(0);
 	}
-	return glfwGetKey('Z')|glfwGetKey('X')<<1|glfwGetKey(GLFW_KEY_RIGHT)<<2|glfwGetKey(GLFW_KEY_LEFT)<<3|glfwGetKey(GLFW_KEY_DOWN)<<4|glfwGetKey(GLFW_KEY_UP)<<5;
+	return glfwGetKey(wnd,'Z')|glfwGetKey(wnd,'X')<<1|glfwGetKey(wnd,GLFW_KEY_RIGHT)<<2|glfwGetKey(wnd,GLFW_KEY_LEFT)<<3|glfwGetKey(wnd,GLFW_KEY_DOWN)<<4|glfwGetKey(wnd,GLFW_KEY_UP)<<5;
 }

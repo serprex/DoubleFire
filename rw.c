@@ -1,11 +1,10 @@
 #include "df.h"
 uint16_t T,MT;
 static uint16_t mnT,mxT,moT;
-typedef struct{
+static struct{
 	uint8_t*restrict p;
 	int n;
-}frame;
-static frame*rw;
+}*rw;
 static int crw=-1,rwp,rwT,welt,cpi=-2,piT,pip,mlen=5;
 static uint8_t*pin,mbuf[8];
 #define w(x) static void w##x(uint##x##_t a){rw[crw].p=realloc(rw[crw].p,rw[crw].n+x/8);assert(rw[crw].p);*(uint##x##_t*)(rw[crw].p+rw[crw].n)=a;rw[crw].n+=x/8;}static uint##x##_t r##x(){rw[crw].n-=x/8;assert(rw[crw].n>=0);return*(uint##x##_t*)(rw[crw].p+rw[crw].n);}
@@ -344,11 +343,11 @@ void rwBegin(){
 		rwT+=shift;
 		for(int i=0;i<shift;i++)
 			free(rw[i].p);
-		memmove(rw,rw+shift,sizeof(frame)*(rwp-=shift));
+		memmove(rw,rw+shift,sizeof(*rw)*(rwp-=shift));
 	}
 	assert(crw<rwp);
 	if(++crw==rwp){
-		rw=realloc(rw,sizeof(frame)*++rwp);
+		rw=realloc(rw,sizeof(*rw)*++rwp);
 		rw[crw].p=0;
 		rw[crw].n=0;
 	}
@@ -379,6 +378,7 @@ void rwBegin(){
 		sprBegin();
 		notex();
 		disableBlend();
+		rndcol();
 	}
 }
 void rwEnd(){

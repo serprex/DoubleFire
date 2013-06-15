@@ -87,10 +87,8 @@ int main(int argc,char**argv){
 		else{
 			if(Lzo&&Ph[1]==1)Ph[1]=0;
 			for(int i=0;i<2;i++)
-				if(Ph[i]==1&&Pe<127)
-					incPe();
-				else(Ph[i]<1)
-					plHit();
+				if(Ph[i]==1&&Pe<127)incPe();
+				else(Ph[i]<1)plHit();
 		}
 		if(T==MT){
 			if(Bor){

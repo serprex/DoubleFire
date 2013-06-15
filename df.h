@@ -5,7 +5,6 @@
 #include <string.h>
 #include <assert.h>
 typedef const uint8_t*const colt;
-extern uint16_t T,MT;
 extern uint8_t Pf[2],Pi,Pt,Lzo,Box,Boy,Bor;
 extern int8_t Pe;
 extern int Ph[2];

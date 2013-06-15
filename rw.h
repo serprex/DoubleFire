@@ -1,3 +1,4 @@
+extern uint16_t T,MT;
 void rwBegin();
 void rwEnd();
 void rwDrawLag();
